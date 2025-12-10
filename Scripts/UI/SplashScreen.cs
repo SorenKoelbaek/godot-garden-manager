@@ -131,7 +131,7 @@ namespace GardenManager.UI
             var password = _passwordInput.Text;
             var gameKey = _gameKeyInput.Text;
 
-            GD.Print($"SplashScreen: Username: {username}, Password length: {password.Length}, GameKey: {gameKey}");
+            GD.Print($"SplashScreen: Username: {username}, Password length: {password.Length}, GameKey length: {gameKey.Length}");
 
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(gameKey))
             {
