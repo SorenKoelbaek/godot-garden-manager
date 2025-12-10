@@ -1,6 +1,6 @@
 [gd_resource type="ShaderMaterial" load_steps=2 format=3 uid="uid://dccwcm8u6nsex"]
 
-[ext_resource type="Shader" uid="uid://d2remvhjbo2kk" path="res://example/godot_botw_grass-main/sha_grass.gdshader" id="1_akg1g"]
+[ext_resource type="Shader" uid="uid://d2remvhjbo2kk" path="res://resources/grass/shaders/sha_grass.gdshader" id="1_akg1g"]
 
 [resource]
 render_priority = 0

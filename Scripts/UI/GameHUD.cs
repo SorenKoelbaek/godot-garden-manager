@@ -9,15 +9,18 @@ public partial class GameHUD : Control
     private Button _speedUpButton;
     private Button _prevMonthButton;
     private Button _nextMonthButton;
+    private Label _toolLabel;
     private TimeManager _timeManager;
+    private ToolManager _toolManager;
     private MainMenu _mainMenu;
     
     public override void _Ready()
     {
         GD.Print("GameHUD: _Ready() called");
         
-        // Get TimeManager singleton
+        // Get singletons
         _timeManager = GetNode<TimeManager>("/root/TimeManager");
+        _toolManager = GetNode<ToolManager>("/root/ToolManager");
         
         // Get UI nodes
         _timeLabel = GetNode<Label>("HBoxContainer/TimeContainer/TimeLabel");
@@ -27,6 +30,7 @@ public partial class GameHUD : Control
         _speedUpButton = GetNode<Button>("HBoxContainer/TimeContainer/SpeedUpButton");
         _prevMonthButton = GetNode<Button>("HBoxContainer/MonthContainer/PrevMonthButton");
         _nextMonthButton = GetNode<Button>("HBoxContainer/MonthContainer/NextMonthButton");
+        _toolLabel = GetNode<Label>("HBoxContainer/ToolLabel");
         
         // Connect buttons
         _slowDownButton.Pressed += OnSlowDownPressed;
@@ -38,9 +42,16 @@ public partial class GameHUD : Control
         _timeManager.TimeChanged += OnTimeChanged;
         _timeManager.DateChanged += OnDateChanged;
         
+        // Subscribe to tool changes
+        if (_toolManager != null)
+        {
+            _toolManager.ToolChanged += OnToolChanged;
+        }
+        
         // Initial update
         UpdateTimeDisplay();
         UpdateDateDisplay();
+        UpdateToolDisplay();
         
         // Find MainMenu to listen for visibility changes
         var mainWorld = GetTree().CurrentScene;
@@ -76,6 +87,11 @@ public partial class GameHUD : Control
         {
             _timeManager.TimeChanged -= OnTimeChanged;
             _timeManager.DateChanged -= OnDateChanged;
+        }
+        
+        if (_toolManager != null)
+        {
+            _toolManager.ToolChanged -= OnToolChanged;
         }
     }
     
@@ -124,6 +140,19 @@ public partial class GameHUD : Control
     private void OnNextMonthPressed()
     {
         _timeManager?.NextMonth();
+    }
+    
+    private void OnToolChanged(ToolType tool)
+    {
+        UpdateToolDisplay();
+    }
+    
+    private void UpdateToolDisplay()
+    {
+        if (_toolLabel != null && _toolManager != null)
+        {
+            _toolLabel.Text = $"Tool: {_toolManager.GetToolName()}";
+        }
     }
     
 }

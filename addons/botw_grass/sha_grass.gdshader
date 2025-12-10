@@ -6,6 +6,7 @@ uniform vec4 color_bottom:source_color = vec4(0,0,0,1);
 
 uniform float deg_sway_pitch = 80.0;
 uniform float deg_sway_yaw = 45.0;
+uniform sampler2D growth_texture;
 
 uniform float wind_scale = 4.0;
 uniform float wind_speed = 1.0;
@@ -60,12 +61,19 @@ void vertex() {
 	vec3 vertex = VERTEX;
 	vec3 wind_direction_normalized = normalize(wind_direction);
 	float time = TIME * wind_speed;
+	vec3 world_pos = (MODEL_MATRIX * vec4(vertex, 1.0)).xyz;
+
+	float diffuser =
+		sin(world_pos.x * 0.2 + time * 0.6) *
+		sin(world_pos.z * 0.2 + time * 0.7);
+
+	diffuser *= 0.10 * UV2.y;
 	vec2 uv = (MODEL_MATRIX * vec4(vertex,-1.0)).xz * wind_scale;
 	uv += wind_direction_normalized.xz * time;
-	wind = pow(worley2(uv),2.0) * UV2.y;
-	
-	mat3 to_model = inverse(mat3(MODEL_MATRIX));
-	vec3 wind_forward = to_model * wind_direction_normalized;
+	float worley_wind = pow(worley2(uv),2.0) * UV2.y;
+	wind = worley_wind + diffuser;
+
+	vec3 wind_forward = wind_direction_normalized;
 	vec3 wind_right = normalize(cross(wind_forward, UP));
 	
 	float sway_pitch = ((deg_sway_pitch * DEG2RAD) * wind) + INSTANCE_CUSTOM.z;
@@ -74,8 +82,14 @@ void vertex() {
 	mat3 rot_right = mat3_from_axis_angle(sway_pitch, wind_right);
 	mat3 rot_forward = mat3_from_axis_angle(sway_yaw, wind_forward);
 	
+
+	float grow_factor = texture(growth_texture, COLOR.rb).r;
+
+
 	vertex.xz *= INSTANCE_CUSTOM.x;
-	vertex.y *= INSTANCE_CUSTOM.y;
+	vertex.y *= INSTANCE_CUSTOM.y * (1.0 - grow_factor);
+
+
 
 	VERTEX = rot_right * rot_forward * vertex;
 
@@ -86,6 +100,7 @@ void fragment() {
 	float side = FRONT_FACING ? 1.0 : -1.0;
 	NORMAL = NORMAL * side;
 	ALBEDO = COLOR.rgb;
+
 	SPECULAR = 0.5;
 	ROUGHNESS = clamp(1.0 - (wind * 1.2), 0.0, 1.0);
 }
