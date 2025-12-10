@@ -1,0 +1,30 @@
+[gd_scene load_steps=6 format=3 uid="uid://bqj8x7k3m4n5p6"]
+
+[ext_resource type="Script" path="res://Scripts/World/WorldManager.cs" id="1_1"]
+[ext_resource type="Script" path="res://Scripts/World/Player.cs" id="2_1"]
+[ext_resource type="PackedScene" uid="uid://d1e2f3g4h5i6j7" path="res://scenes/ui/menus/main_menu.tscn" id="3_1"]
+[ext_resource type="PackedScene" uid="uid://b8h9i0j1k2l3m4" path="res://scenes/ui/game_hud.tscn" id="4_1"]
+[ext_resource type="PackedScene" uid="uid://c5d6e7f8g9h0i1" path="res://scenes/ui/loading_spinner.tscn" id="5_1"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_1"]
+radius = 0.1
+height = 2.0
+
+[node name="MainWorld" type="Node3D"]
+script = ExtResource("1_1")
+
+[node name="Player" type="CharacterBody3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+script = ExtResource("2_1")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="Player"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_1")
+
+[node name="UICanvas" type="CanvasLayer" parent="."]
+
+[node name="LoadingSpinner" parent="UICanvas" instance=ExtResource("5_1")]
+
+[node name="MainMenu" parent="UICanvas" instance=ExtResource("3_1")]
+
+[node name="GameHUD" parent="UICanvas" instance=ExtResource("4_1")]

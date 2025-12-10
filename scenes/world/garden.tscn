@@ -1,0 +1,38 @@
+[gd_scene load_steps=8 format=3 uid="uid://dub6w4glu10it"]
+
+[ext_resource type="Script" uid="uid://c0l4e3ttf5chd" path="res://Scripts/World/Garden.cs" id="1"]
+[ext_resource type="Script" path="res://addons/botw_grass/grass.gd" id="2"]
+[ext_resource type="Material" path="res://addons/botw_grass/mat_floor.tres" id="2_4asl3"]
+[ext_resource type="Material" path="res://addons/botw_grass/mat_grass.tres" id="3_imm81"]
+
+[sub_resource type="PlaneMesh" id="PlaneMesh_1"]
+size = Vector2(10, 10)
+
+[sub_resource type="MultiMesh" id="MultiMesh_dywpw"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_1"]
+size = Vector3(10, 0.1, 10)
+
+[node name="Garden" type="Node3D"]
+script = ExtResource("1")
+
+[node name="GroundPlane" type="MeshInstance3D" parent="."]
+material_override = ExtResource("2_4asl3")
+mesh = SubResource("PlaneMesh_1")
+
+[node name="Grass" type="MultiMeshInstance3D" parent="GroundPlane"]
+material_override = ExtResource("3_imm81")
+multimesh = SubResource("MultiMesh_dywpw")
+script = ExtResource("2")
+blade_width = Vector2(0.02, 0.02)
+blade_height = Vector2(0.04, 0.08)
+sway_pitch = Vector2(0.04, 0.08)
+sway_yaw = Vector2(0.0, 10.0)
+density = 1000.0
+mesh = SubResource("PlaneMesh_1")
+
+[node name="GroundCollision" type="StaticBody3D" parent="GroundPlane"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="GroundPlane/GroundCollision"]
+shape = SubResource("BoxShape3D_1")
+position = Vector3(0, -0.05, 0)

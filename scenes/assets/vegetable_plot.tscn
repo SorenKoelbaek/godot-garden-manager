@@ -1,0 +1,53 @@
+[gd_scene load_steps=8 format=3 uid="uid://cyp581vqsgtke"]
+
+[ext_resource type="Script" path="res://Scripts/World/VegetablePlot.cs" id="1_wpoga"]
+[ext_resource type="Material" uid="uid://bb5ifbjkjdq5q" path="res://scenes/assets/materials/plank_mat.tres" id="2_kfubp"]
+[ext_resource type="Material" uid="uid://cshdi5jws8l3a" path="res://scenes/assets/materials/dirt_mat.tres" id="3_sx3de"]
+
+[sub_resource type="BoxMesh" id="BoxMesh_do7me"]
+size = Vector3(1, 0.3, 0.05)
+
+[sub_resource type="BoxMesh" id="BoxMesh_07bbp"]
+size = Vector3(1, 0.3, 0.05)
+
+[sub_resource type="BoxMesh" id="BoxMesh_6h4k0"]
+size = Vector3(0.96, 0.2, 0.96)
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_2pvc8"]
+size = Vector3(1, 0.3, 1)
+
+[node name="VegetablePlot" type="Node3D"]
+script = ExtResource("1_wpoga")
+
+[node name="SideSouth" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0.5)
+material_override = ExtResource("2_kfubp")
+mesh = SubResource("BoxMesh_do7me")
+
+[node name="SideNorth" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -0.5)
+material_override = ExtResource("2_kfubp")
+mesh = SubResource("BoxMesh_do7me")
+skeleton = NodePath("../SideSouth")
+
+[node name="SideEast" type="MeshInstance3D" parent="."]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -0.47566247, 0, 0)
+material_override = ExtResource("2_kfubp")
+mesh = SubResource("BoxMesh_07bbp")
+skeleton = NodePath("../SideSouth")
+
+[node name="Dirt" type="MeshInstance3D" parent="."]
+material_override = ExtResource("3_sx3de")
+mesh = SubResource("BoxMesh_6h4k0")
+skeleton = NodePath("../SideSouth")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="."]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="StaticBody3D"]
+shape = SubResource("BoxShape3D_2pvc8")
+
+[node name="SideWest" type="MeshInstance3D" parent="."]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, 0.475, 0, 0)
+material_override = ExtResource("2_kfubp")
+mesh = SubResource("BoxMesh_07bbp")
+skeleton = NodePath("../SideSouth")

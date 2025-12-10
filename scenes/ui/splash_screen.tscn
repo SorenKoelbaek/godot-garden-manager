@@ -1,0 +1,59 @@
+[gd_scene load_steps=2 format=3 uid="uid://c8d9e0f1g2h3i4"]
+
+[ext_resource type="Script" path="res://Scripts/UI/SplashScreen.cs" id="1_1"]
+
+[node name="SplashScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_1")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -200.0
+offset_right = 200.0
+offset_bottom = 200.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="UsernameInput" type="LineEdit" parent="VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Username"
+
+[node name="PasswordInput" type="LineEdit" parent="VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Password"
+secret = true
+
+[node name="GameKeyInput" type="LineEdit" parent="VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Game Key"
+
+[node name="LoginButton" type="Button" parent="VBoxContainer"]
+layout_mode = 2
+text = "Login"
+
+[node name="ErrorLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = ""
+modulate = Color(1, 0, 0, 1)
+visible = false
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer"]
+layout_mode = 2
+text = ""
+visible = false
+
+[node name="GardensContainer" type="VBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+visible = false
+
