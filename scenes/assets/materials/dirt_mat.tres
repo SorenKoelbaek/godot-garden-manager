@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" load_steps=2 format=3 uid="uid://cshdi5jws8l3a"]
+
+[ext_resource type="Texture2D" uid="uid://dxcd15up71bxr" path="res://scenes/assets/materials/dirt.jpg" id="1_bx0n1"]
+
+[resource]
+resource_name = "DirtMaterial"
+shading_mode = 0
+diffuse_mode = 3
+specular_mode = 2
+albedo_color = Color(0.83326703, 0.73411214, 0.59392804, 1)
+albedo_texture = ExtResource("1_bx0n1")

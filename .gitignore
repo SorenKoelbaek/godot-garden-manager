@@ -1,0 +1,7 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# User credentials (stored in user:// directory, not in project)
+# Note: user://credentials.json
+user://settings.json is in the user data directory and should not be committed
