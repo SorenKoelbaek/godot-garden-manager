@@ -5,3 +5,11 @@
 # User credentials (stored in user:// directory, not in project)
 # Note: user://credentials.json
 user://settings.json is in the user data directory and should not be committed
+.idea/copilot.data.migration.agent.xml
+.idea/copilot.data.migration.edit.xml
+.idea/godot-garden-manager.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/workspace.xml
+.idea/inspectionProfiles/profiles_settings.xml
