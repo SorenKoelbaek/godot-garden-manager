@@ -228,4 +228,21 @@ public partial class Garden : Node3D
 			box.Size = new Vector3(width, 0.1f, depth);
 		}
 	}
+
+
+	// --------------------------------------------------------------------
+	// GRASS VISIBILITY CONTROL
+	// --------------------------------------------------------------------
+	public void SetGrassVisible(bool visible)
+	{
+		if (_grassNode != null)
+		{
+			_grassNode.Visible = visible;
+			GD.Print($"Garden: Grass visibility set to {visible}");
+		}
+		else
+		{
+			GD.PrintErr("Garden: Cannot set grass visibility - grass node is null");
+		}
+	}
 }

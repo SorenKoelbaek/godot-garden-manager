@@ -45,6 +45,17 @@ text = "Player Speed: 5.0 m/s"
 [node name="HSlider" type="HSlider" parent="VBoxContainer/PlayerSpeedContainer"]
 layout_mode = 2
 
+[node name="RenderGrassContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/RenderGrassContainer"]
+layout_mode = 2
+text = "Render Grass"
+
+[node name="RenderGrassCheckBox" type="CheckBox" parent="VBoxContainer/RenderGrassContainer"]
+layout_mode = 2
+button_pressed = true
+
 [node name="SaveButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 text = "Save"

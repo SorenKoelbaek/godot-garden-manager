@@ -9,6 +9,9 @@ namespace GardenManager.Models
 
         [JsonPropertyName("player_speed")]
         public float PlayerSpeed { get; set; } = 5.0f;
+
+        [JsonPropertyName("render_grass")]
+        public bool RenderGrass { get; set; } = true;
     }
 }
 

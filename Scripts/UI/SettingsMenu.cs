@@ -8,6 +8,7 @@ public partial class SettingsMenu : Control
     private HSlider _playerSpeedSlider;
     private Label _mouseSensitivityLabel;
     private Label _playerSpeedLabel;
+    private CheckBox _renderGrassCheckBox;
     private Button _saveButton;
     private Button _cancelButton;
     
@@ -25,6 +26,7 @@ public partial class SettingsMenu : Control
         _playerSpeedSlider = GetNode<HSlider>("VBoxContainer/PlayerSpeedContainer/HSlider");
         _mouseSensitivityLabel = GetNode<Label>("VBoxContainer/MouseSensitivityContainer/Label");
         _playerSpeedLabel = GetNode<Label>("VBoxContainer/PlayerSpeedContainer/Label");
+        _renderGrassCheckBox = GetNode<CheckBox>("VBoxContainer/RenderGrassContainer/RenderGrassCheckBox");
         _saveButton = GetNode<Button>("VBoxContainer/SaveButton");
         _cancelButton = GetNode<Button>("VBoxContainer/CancelButton");
         
@@ -36,6 +38,9 @@ public partial class SettingsMenu : Control
         _mouseSensitivitySlider.ValueChanged += OnMouseSensitivityChanged;
         _playerSpeedSlider.ValueChanged += OnPlayerSpeedChanged;
         
+        // Connect checkbox
+        _renderGrassCheckBox.Toggled += OnRenderGrassToggled;
+        
         // Load settings
         _settings = _credentialManager.LoadSettings();
         if (_settings == null)
@@ -43,7 +48,8 @@ public partial class SettingsMenu : Control
             _settings = new GameSettings
             {
                 MouseSensitivity = 0.003f,
-                PlayerSpeed = 5.0f
+                PlayerSpeed = 5.0f,
+                RenderGrass = true
             };
         }
         
@@ -57,6 +63,9 @@ public partial class SettingsMenu : Control
         _playerSpeedSlider.MaxValue = 20.0f;
         _playerSpeedSlider.Step = 0.1f;
         _playerSpeedSlider.Value = _settings.PlayerSpeed;
+        
+        // Set checkbox value
+        _renderGrassCheckBox.ButtonPressed = _settings.RenderGrass;
         
         UpdateLabels();
         
@@ -75,6 +84,12 @@ public partial class SettingsMenu : Control
         UpdateLabels();
     }
 
+    private void OnRenderGrassToggled(bool buttonPressed)
+    {
+        _settings.RenderGrass = buttonPressed;
+        GD.Print($"SettingsMenu: Render grass toggled: {buttonPressed}");
+    }
+
     private void UpdateLabels()
     {
         _mouseSensitivityLabel.Text = $"Mouse Sensitivity: {_settings.MouseSensitivity:F4}";
@@ -83,7 +98,7 @@ public partial class SettingsMenu : Control
 
     private void OnSavePressed()
     {
-        GD.Print($"SettingsMenu: Saving settings - Sensitivity: {_settings.MouseSensitivity}, Speed: {_settings.PlayerSpeed}");
+        GD.Print($"SettingsMenu: Saving settings - Sensitivity: {_settings.MouseSensitivity}, Speed: {_settings.PlayerSpeed}, RenderGrass: {_settings.RenderGrass}");
         _credentialManager.SaveSettings(_settings);
         
         // Apply to player if in world
@@ -96,6 +111,14 @@ public partial class SettingsMenu : Control
                 player.MouseSensitivity = _settings.MouseSensitivity;
                 player.Speed = _settings.PlayerSpeed;
                 GD.Print("SettingsMenu: Applied settings to player");
+            }
+            
+            // Apply grass setting to garden if in world
+            var garden = mainWorld.GetNodeOrNull<Garden>("Garden");
+            if (garden != null)
+            {
+                garden.SetGrassVisible(_settings.RenderGrass);
+                GD.Print($"SettingsMenu: Applied grass setting to garden: {_settings.RenderGrass}");
             }
         }
         
