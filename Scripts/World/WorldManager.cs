@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using GardenManager.Api;
+using GardenManager.Auth;
+using GardenManager.Managers;
 using GardenManager.Models;
 using Godot;
 
@@ -12,6 +14,7 @@ public partial class WorldManager : Node3D
 	private MeshInstance3D _groundPlane;
 	private Label3D _gardenLabel;
 	private LoadingSpinner _loadingSpinner;
+	private LoadingProgressTracker _progressTracker;
 	private Player _player;
 	private GameHUD _gameHUD;
 	private Node3D _gardenNode;
@@ -90,6 +93,8 @@ public partial class WorldManager : Node3D
 			if (_loadingSpinner != null)
 			{
 				_loadingSpinner.Visible = true;
+				// Initialize progress tracker
+				_progressTracker = new LoadingProgressTracker(_loadingSpinner);
 			}
 			else
 			{
@@ -103,11 +108,16 @@ public partial class WorldManager : Node3D
 		
 		_player = GetNodeOrNull<Player>("Player");
 		
-		// Hide player initially
+		// Hide player initially and disable input
 		if (_player != null)
 		{
 			_player.Visible = false;
+			_player.SetProcess(false);
+			_player.SetPhysicsProcess(false);
 		}
+		
+		// Disable input globally while loading
+		GetViewport().GuiDisableInput = true;
 		
 		// Load and display garden
 		_ = LoadGardenAsync();
@@ -117,6 +127,19 @@ public partial class WorldManager : Node3D
 	{
 		var gardenUuid = _gameManager.CurrentGardenUuid;
 		GD.Print($"WorldManager: Loading garden: {gardenUuid}");
+		
+		// Reset progress tracker
+		if (_progressTracker != null)
+		{
+			_progressTracker.Reset();
+		}
+		
+		// Initial progress
+		if (_progressTracker != null)
+		{
+			_progressTracker.SetProgress(0.0f, "Initializing garden...");
+		}
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		
 		GardenManager.Models.Garden gardenData;
 		
@@ -135,6 +158,12 @@ public partial class WorldManager : Node3D
 		}
 		else
 		{
+			if (_progressTracker != null)
+			{
+				_progressTracker.SetProgress(2.0f, "Loading garden data...");
+			}
+			await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+			
 			gardenData = await _gardenService.GetGardenAsync(gardenUuid);
 			if (gardenData == null)
 			{
@@ -176,6 +205,9 @@ public partial class WorldManager : Node3D
 				
 				// Wait for garden to be ready (grass generation)
 				await WaitForGardenReady(gardenNode);
+				
+				// Apply grass setting from saved settings
+				ApplyGrassSetting(gardenNode);
 			}
 			else
 			{
@@ -193,8 +225,8 @@ public partial class WorldManager : Node3D
 		
 		CreateGardenPerimeter(gardenData);
 		
-		// Load and render plots
-		_ = LoadPlotsAsync(gardenUuid, gardenData);
+		// Load and render plots - await completion before finishing loading
+		await LoadPlotsAsync(gardenUuid, gardenData);
 		
 		// Finalize loading - show player and HUD, hide spinner
 		FinishLoading();
@@ -394,9 +426,34 @@ public partial class WorldManager : Node3D
 		GD.PrintErr("WorldManager: Timeout waiting for garden to be ready");
 	}
 	
+	private void ApplyGrassSetting(Node3D gardenNode)
+	{
+		// Load settings and apply grass visibility
+		var credentialManager = new CredentialManager();
+		var settings = credentialManager.LoadSettings();
+		
+		if (settings != null && gardenNode is Garden garden)
+		{
+			garden.SetGrassVisible(settings.RenderGrass);
+			GD.Print($"WorldManager: Applied grass setting: {settings.RenderGrass}");
+		}
+		else if (settings == null)
+		{
+			// Default to visible if no settings found
+			if (gardenNode is Garden defaultGarden)
+			{
+				defaultGarden.SetGrassVisible(true);
+				GD.Print("WorldManager: No settings found, defaulting grass to visible");
+			}
+		}
+	}
+	
 	private void FinishLoading()
 	{
 		GD.Print("WorldManager: Finishing loading - showing player and HUD");
+		
+		// Re-enable input globally
+		GetViewport().GuiDisableInput = false;
 		
 		// Hide spinner FIRST
 		if (_loadingSpinner != null)
@@ -411,10 +468,12 @@ public partial class WorldManager : Node3D
 			GD.PrintErr("WorldManager: LoadingSpinner is null! Cannot hide it.");
 		}
 		
-		// Show player
+		// Show player and enable input
 		if (_player != null)
 		{
 			_player.Visible = true;
+			_player.SetProcess(true);
+			_player.SetPhysicsProcess(true);
 		}
 		
 		// Show HUD
@@ -755,41 +814,130 @@ public partial class WorldManager : Node3D
 		skyMaterial.GroundHorizonColor = groundHorizon;
 	}
 
+	/// <summary>
+	/// Loads all plots for the garden and creates their 3D representations.
+	/// Uses LoadingProgressTracker to show progress.
+	/// 
+	/// To add a new plot type:
+	/// 1. Filter plots by type (like vegetablePlots/fruitTreePlots)
+	/// 2. Count how many you'll create
+	/// 3. Register a phase: _progressTracker.RegisterPhase("NewPlotType", weight)
+	/// 4. Loop through and create them, calling _progressTracker.UpdateItemProgress() for each
+	/// 5. Call _progressTracker.CompletePhase() when done
+	/// 
+	/// The progress tracker automatically handles the math - remaining 90% is split proportionally
+	/// based on the weights you assign to each plot type phase.
+	/// </summary>
 	private async System.Threading.Tasks.Task LoadPlotsAsync(string gardenUuid, GardenManager.Models.Garden garden)
 	{
 		GD.Print($"WorldManager: Loading plots for garden: {gardenUuid}");
 		
+		if (_progressTracker == null)
+		{
+			GD.PrintErr("WorldManager: Progress tracker not initialized!");
+			return;
+		}
+		
+		// Register loading phases
+		// Phase 1: Getting plots from API = 10% (always)
+		_progressTracker.RegisterPhase("GettingPlots", 10.0f);
+		
+		// Update progress: Getting plots
+		_progressTracker.SetProgress(0.0f, "Loading plots...");
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		
 		var plots = await _gardenService.GetPlotsAsync(gardenUuid);
 		GD.Print($"WorldManager: Loaded {plots.Count} plots");
 		
-		// Filter for vegetable plots
+		// Complete getting plots phase
+		_progressTracker.CompletePhase("GettingPlots", "Plots loaded");
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		
+		// Filter plots by type
 		var vegetablePlots = plots.Where(p => 
 			p.PlotType != null && 
 			p.PlotType.Name.ToLower().Contains("vegetable")).ToList();
 		
-		GD.Print($"WorldManager: Found {vegetablePlots.Count} vegetable plots");
-		
-		// Render each vegetable plot
-		foreach (var plot in vegetablePlots)
-		{
-			if (plot.Shape.ToLower() == "rectangle")
-			{
-				CreatePlotRectangle(plot, garden);
-			}
-		}
-		
-		// Filter for fruit tree plots
 		var fruitTreePlots = plots.Where(p => 
 			p.PlotType != null && 
 			p.PlotType.Name.ToLower().Contains("fruit tree")).ToList();
 		
-		GD.Print($"WorldManager: Found {fruitTreePlots.Count} fruit tree plots");
+		GD.Print($"WorldManager: Found {vegetablePlots.Count} vegetable plots, {fruitTreePlots.Count} fruit tree plots");
 		
-		// Render each fruit tree plot
+		// Count only rectangle vegetable plots (the ones we actually create)
+		int vegetablePlotCount = vegetablePlots.Count(p => p.Shape.ToLower() == "rectangle");
+		
+		// Register phases for each plot type
+		// Remaining 90% is split equally among all items
+		int totalItems = vegetablePlotCount + fruitTreePlots.Count;
+		
+		if (totalItems > 0)
+		{
+			// Register phases dynamically based on what we need to create
+			if (vegetablePlotCount > 0)
+			{
+				_progressTracker.RegisterPhase("VegetablePlots", 90.0f * vegetablePlotCount / totalItems);
+			}
+			
+			if (fruitTreePlots.Count > 0)
+			{
+				_progressTracker.RegisterPhase("FruitTrees", 90.0f * fruitTreePlots.Count / totalItems);
+			}
+		}
+		else
+		{
+			// No items to load, mark as complete
+			_progressTracker.SetProgress(100.0f, "No plots to load");
+			return;
+		}
+		
+		GD.Print($"WorldManager: Registered phases - VegetablePlots: {vegetablePlotCount} items, FruitTrees: {fruitTreePlots.Count} items");
+		
+		// Yield frame after filtering
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		
+		// Render each vegetable plot
+		int vegetablePlotIndex = 0;
+		foreach (var plot in vegetablePlots)
+		{
+			if (plot.Shape.ToLower() == "rectangle")
+			{
+				vegetablePlotIndex++;
+				_progressTracker.UpdateItemProgress("VegetablePlots", vegetablePlotIndex, vegetablePlotCount, plot.Name);
+				CreatePlotRectangle(plot, garden);
+				// Yield frame after each plot to prevent framerate drop
+				await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+			}
+		}
+		
+		// Complete vegetable plots phase if we processed any
+		if (vegetablePlotCount > 0)
+		{
+			_progressTracker.CompletePhase("VegetablePlots");
+			await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		}
+		
+		// Render each fruit tree plot with frequent yields
+		int treeIndex = 0;
 		foreach (var plot in fruitTreePlots)
 		{
-			CreateFruitTree(plot, garden);
+			treeIndex++;
+			_progressTracker.UpdateItemProgress("FruitTrees", treeIndex, fruitTreePlots.Count, plot.Name);
+			await CreateFruitTreeAsync(plot, garden);
+			// Yield frame after each tree to prevent framerate drop (trees are heavy)
+			await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		}
+		
+		// Complete fruit trees phase if we processed any
+		if (fruitTreePlots.Count > 0)
+		{
+			_progressTracker.CompletePhase("FruitTrees");
+			await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		}
+		
+		// Ensure we're at 100% when done
+		_progressTracker.SetProgress(100.0f, "Loading complete!");
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 	}
 
 	/// <summary>
@@ -921,8 +1069,11 @@ public partial class WorldManager : Node3D
 		GD.Print($"WorldManager: Created plot box - upper-left corner at ({plotUpperLeftX}, {plotUpperLeftZ}), center at ({plotCenterX}, {0.35f / 2.0f}, {plotCenterZ}) with collision");
 	}
 
-	private void CreateFruitTree(Plot plot, GardenManager.Models.Garden garden)
+	private async System.Threading.Tasks.Task CreateFruitTreeAsync(Plot plot, GardenManager.Models.Garden garden)
 	{
+		// Yield frame at start to allow spinner to update
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		
 		GD.Print($"WorldManager: Creating fruit tree plot: {plot.Name} at ({plot.X}, {plot.Y}), size: {plot.Width}x{plot.Depth}");
 		
 		// Convert garden coordinates to 3D world coordinates (upper-left corner)
@@ -940,6 +1091,9 @@ public partial class WorldManager : Node3D
 			plotWidth *= 0.3048f;
 			plotDepth *= 0.3048f;
 		}
+		
+		// Yield frame after coordinate calculations
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		
 		// Calculate scale factor based on average of width and depth
 		// Average gives us a representative size for the plot
@@ -960,6 +1114,9 @@ public partial class WorldManager : Node3D
 		// Since upper-left is at -Z (forward/top), we add depth/2 to get center
 		float treeZ = plotUpperLeftZ + plotDepth / 2.0f;
 		
+		// Yield frame before loading materials
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		
 		// Load the materials
 		var trunkMaterial = GD.Load<Material>("res://resources/plot_types/trunk_mat.tres");
 		var baseTwigMaterial = GD.Load<Material>("res://resources/plot_types/twig_mat.tres");
@@ -969,6 +1126,9 @@ public partial class WorldManager : Node3D
 			GD.PrintErr("WorldManager: Failed to load tree materials!");
 			return;
 		}
+		
+		// Yield frame after loading materials
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		
 		// Create season-based twig material by duplicating the base material
 		var twigMaterial = baseTwigMaterial.Duplicate() as StandardMaterial3D;
@@ -988,6 +1148,9 @@ public partial class WorldManager : Node3D
 		// Apply the color to the material
 		twigMaterial.AlbedoColor = twigColor;
 		
+		// Yield frame before loading tree type
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		
 		// Get random tree type
 		var treeType = TreeTypeLoader.GetRandomTreeType();
 		if (treeType == null)
@@ -998,6 +1161,9 @@ public partial class WorldManager : Node3D
 		
 		GD.Print($"WorldManager: Selected tree type: {treeType.Name}");
 		
+		// Yield frame before instantiating tree
+		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+		
 		// Try to instantiate Tree3D using ClassDB
 		var className = new StringName("Tree3D");
 		if (ClassDB.CanInstantiate(className))
@@ -1007,6 +1173,9 @@ public partial class WorldManager : Node3D
 			
 			if (tree3D != null)
 			{
+				// Yield frame after instantiation
+				await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+				
 				// Load materials from tree type or use defaults
 				Material? finalTrunkMaterial = trunkMaterial;
 				Material? finalTwigMaterial = twigMaterial;
@@ -1035,6 +1204,9 @@ public partial class WorldManager : Node3D
 					}
 				}
 				
+				// Yield frame before setting properties
+				await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+				
 				// Set materials
 				tree3D.Set("material_trunk", finalTrunkMaterial);
 				tree3D.Set("material_twig", finalTwigMaterial);
@@ -1061,6 +1233,9 @@ public partial class WorldManager : Node3D
 					monthTwigMultiplier = _timeManager.GetTwigScaleMultiplier();
 				}
 				
+				// Yield frame before setting many properties
+				await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+				
 				// Apply tree type properties with plot size scaling where appropriate
 				tree3D.Set("seed", seed);
 				
@@ -1084,6 +1259,9 @@ public partial class WorldManager : Node3D
 				{
 					tree3D.Set("trunk_branch_length", treeType.TrunkBranchLength.Value * scaleFactor);
 				}
+				
+				// Yield frame mid-way through property setting
+				await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 				
 				// Properties that don't scale with plot size (ratios, angles, etc.)
 				if (treeType.TrunkBranchesCount.HasValue)
@@ -1126,6 +1304,9 @@ public partial class WorldManager : Node3D
 					tree3D.Set("trunk_grow_amount", treeType.TrunkGrowAmount.Value);
 				}
 				
+				// Yield frame before final calculations
+				await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+				
 				// Calculate the tree's base twig scale (100% value) from tree type
 				// This is what the tree would have at full foliage, scaled by plot size
 				float treeBaseTwigScale = (treeType.TwigScale ?? 0.6f) * scaleFactor;
@@ -1136,6 +1317,9 @@ public partial class WorldManager : Node3D
 				
 				// Position the tree at center of plot
 				tree3D.Position = new Vector3(treeX, 0, treeZ);
+				
+				// Yield frame before adding to scene tree
+				await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 				
 				AddChild(tree3D);
 				
