@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using Godot;
+using Serilog;
 
 public partial class ApiClient : Node
 {
@@ -14,12 +15,12 @@ public partial class ApiClient : Node
 
 	public override void _Ready()
 	{
-		GD.Print("ApiClient: _Ready() called");
+		Log.Debug("ApiClient: _Ready() called");
 		_httpRequest = new HttpRequest();
 		AddChild(_httpRequest);
 		_httpRequest.RequestCompleted += OnRequestCompleted;
 		_tokenManager = GetNode<TokenManager>("/root/TokenManager");
-		GD.Print($"ApiClient: TokenManager found: {_tokenManager != null}");
+		Log.Debug("ApiClient: TokenManager found: {Found}", _tokenManager != null);
 	}
 
 	public async Task<T?> GetAsync<T>(string endpoint, bool requiresAuth = true)
@@ -61,7 +62,7 @@ public partial class ApiClient : Node
 		var error = _httpRequest.Request(url, headers.ToArray(), method, requestData);
 		if (error != Error.Ok)
 		{
-			GD.PrintErr($"HTTP Request error: {error}");
+			Log.Error("ApiClient: HTTP Request error: {Error}", error);
 			_currentRequest = null;
 			return default(T);
 		}
@@ -84,7 +85,7 @@ public partial class ApiClient : Node
 		}
 		catch (JsonException ex)
 		{
-			GD.PrintErr($"JSON deserialization error: {ex.Message}");
+			Log.Error(ex, "ApiClient: JSON deserialization error");
 			return default(T);
 		}
 	}
@@ -100,16 +101,16 @@ public partial class ApiClient : Node
 
 		if (httpResult != HttpRequest.Result.Success)
 		{
-			GD.PrintErr($"HTTP Request failed: {httpResult}");
+			Log.Error("ApiClient: HTTP Request failed: {Result}", httpResult);
 			_currentRequest.SetResult("");
 			return;
 		}
 
 		if (responseCode != 200 && responseCode != 201)
 		{
-			GD.PrintErr($"HTTP Error: {responseCode}");
+			Log.Error("ApiClient: HTTP Error: {ResponseCode}", responseCode);
 			var errorBody = Encoding.UTF8.GetString(bodyBytes);
-			GD.PrintErr($"Error body: {errorBody}");
+			Log.Error("ApiClient: Error body: {ErrorBody}", errorBody);
 			_currentRequest.SetResult("");
 			return;
 		}

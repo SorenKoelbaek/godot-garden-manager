@@ -1,5 +1,6 @@
 using Godot;
 using System;
+using Serilog;
 
 public partial class TimeManager : Node
 {
@@ -31,7 +32,7 @@ public partial class TimeManager : Node
     
     public override void _Ready()
     {
-        GD.Print("TimeManager: Initialized");
+        Log.Information("TimeManager: Initialized");
         // Initialize time to 8:00 AM (480 minutes)
         _currentTimeMinutes = 8.0f * 60.0f;
         TimeChanged?.Invoke(_currentTimeMinutes);
@@ -70,7 +71,7 @@ public partial class TimeManager : Node
         {
             _currentSpeedIndex--;
             _timeSpeed = _speedMultipliers[_currentSpeedIndex];
-            GD.Print($"TimeManager: Time slowed down to {_timeSpeed}x speed");
+            Log.Debug("TimeManager: Time slowed down to {Speed}x speed", _timeSpeed);
         }
     }
     
@@ -80,7 +81,7 @@ public partial class TimeManager : Node
         {
             _currentSpeedIndex++;
             _timeSpeed = _speedMultipliers[_currentSpeedIndex];
-            GD.Print($"TimeManager: Time sped up to {_timeSpeed}x speed");
+            Log.Debug("TimeManager: Time sped up to {Speed}x speed", _timeSpeed);
         }
     }
     
@@ -107,7 +108,7 @@ public partial class TimeManager : Node
             _currentYear--;
         }
         DateChanged?.Invoke(_currentMonth, _currentYear);
-        GD.Print($"TimeManager: Month changed to {_currentMonth}/{_currentYear}");
+        Log.Debug("TimeManager: Month changed to {Month}/{Year}", _currentMonth, _currentYear);
     }
     
     private void AdvanceMonth()
@@ -122,7 +123,7 @@ public partial class TimeManager : Node
             _currentYear++;
         }
         DateChanged?.Invoke(_currentMonth, _currentYear);
-        GD.Print($"TimeManager: Month advanced to {_currentMonth}/{_currentYear}");
+        Log.Debug("TimeManager: Month advanced to {Month}/{Year}", _currentMonth, _currentYear);
     }
     
     public string GetTimeString()

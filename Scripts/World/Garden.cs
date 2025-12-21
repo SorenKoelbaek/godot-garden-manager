@@ -1,4 +1,5 @@
 using Godot;
+using Serilog;
 
 public partial class Garden : Node3D
 {
@@ -48,7 +49,7 @@ public partial class Garden : Node3D
 	{
 		if (_runtimeGrowthTexture == null)
 		{
-			GD.PrintErr("Garden: runtime growth texture is NULL in GetGrowthTexture()");
+			Log.Error("Garden: runtime growth texture is NULL in GetGrowthTexture()");
 		}
 
 		return _runtimeGrowthTexture;
@@ -60,7 +61,7 @@ public partial class Garden : Node3D
 	// --------------------------------------------------------------------
 	public override void _Ready()
 	{
-		GD.Print("Garden: _Ready() called");
+		Log.Debug("Garden: _Ready() called");
 
 		// ---------------------------------------------------------
 		// Get nodes
@@ -70,13 +71,13 @@ public partial class Garden : Node3D
 
 		if (_groundPlane == null)
 		{
-			GD.PrintErr("Garden: GroundPlane node not found!");
+			Log.Error("Garden: GroundPlane node not found!");
 			return;
 		}
 
 		if (_grassNode == null)
 		{
-			GD.PrintErr("Garden: Grass node not found!");
+			Log.Error("Garden: Grass node not found!");
 			return;
 		}
 
@@ -91,7 +92,7 @@ public partial class Garden : Node3D
 		if (_groundPlane.Mesh != null)
 		{
 			_grassNode.Set("mesh", _groundPlane.Mesh);
-			GD.Print($"Garden: Set grass mesh property to GroundPlane mesh (type: {_groundPlane.Mesh.GetClass()})");
+			Log.Debug("Garden: Set grass mesh property to GroundPlane mesh (type: {MeshType})", _groundPlane.Mesh.GetClass());
 		}
 
 		// ---------------------------------------------------------
@@ -104,7 +105,7 @@ public partial class Garden : Node3D
 		// ---------------------------------------------------------
 		_timeManager = GetNode<TimeManager>("/root/TimeManager");
 
-		GD.Print("Garden: Initialized");
+		Log.Debug("Garden: Initialized");
 	}
 
 
@@ -113,12 +114,12 @@ public partial class Garden : Node3D
 	// --------------------------------------------------------------------
 	private void AssignRuntimeGrowthTexture()
 	{
-		GD.Print("Garden: Creating runtime growth texture...");
+		Log.Debug("Garden: Creating runtime growth texture...");
 
 		var shaderMat = _grassNode.MaterialOverride as ShaderMaterial;
 		if (shaderMat == null)
 		{
-			GD.PrintErr("Garden: Grass material not found! Cannot assign growth texture.");
+			Log.Error("Garden: Grass material not found! Cannot assign growth texture.");
 			return;
 		}
 
@@ -132,7 +133,7 @@ public partial class Garden : Node3D
 		// Assign to shader
 		shaderMat.SetShaderParameter("growth_texture", _runtimeGrowthTexture);
 
-		GD.Print("Garden: Assigned runtime growth_texture to shader.");
+		Log.Debug("Garden: Assigned runtime growth_texture to shader.");
 	}
 
 
@@ -163,7 +164,7 @@ public partial class Garden : Node3D
 		if (material != null)
 		{
 			material.SetShaderParameter("wind_speed", windSpeed);
-			GD.Print($"Garden: Updated wind speed to {windSpeed:F2}x (time multiplier: {timeMultiplier:F2}x)");
+			Log.Debug("Garden: Updated wind speed to {WindSpeed:F2}x (time multiplier: {TimeMultiplier:F2}x)", windSpeed, timeMultiplier);
 		}
 	}
 
@@ -205,7 +206,7 @@ public partial class Garden : Node3D
 			_groundPlane.Mesh = newPlane;
 		}
 
-		GD.Print($"Garden: Updated plane size to {width}m x {depth}m");
+		Log.Debug("Garden: Updated plane size to {Width}m x {Depth}m", width, depth);
 
 		// Notify Grass.gd to rebuild instance transforms
 		if (_grassNode != null && _groundPlane.Mesh != null)
@@ -238,11 +239,11 @@ public partial class Garden : Node3D
 		if (_grassNode != null)
 		{
 			_grassNode.Visible = visible;
-			GD.Print($"Garden: Grass visibility set to {visible}");
+			Log.Debug("Garden: Grass visibility set to {Visible}", visible);
 		}
 		else
 		{
-			GD.PrintErr("Garden: Cannot set grass visibility - grass node is null");
+			Log.Error("Garden: Cannot set grass visibility - grass node is null");
 		}
 	}
 }

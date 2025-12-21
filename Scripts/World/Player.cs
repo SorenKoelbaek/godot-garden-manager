@@ -1,5 +1,6 @@
 #nullable enable
 using Godot;
+using Serilog;
 
 public partial class Player : CharacterBody3D
 {
@@ -66,10 +67,10 @@ public partial class Player : CharacterBody3D
 		{
 			MouseSensitivity = settings.MouseSensitivity;
 			Speed = settings.PlayerSpeed;
-			GD.Print($"Player: Loaded settings - Sensitivity: {MouseSensitivity}, Speed: {Speed}");
+			Log.Debug("Player: Loaded settings - Sensitivity: {Sensitivity}, Speed: {Speed}", MouseSensitivity, Speed);
 		}
 		
-		GD.Print($"Player: First-person camera created");
+		Log.Debug("Player: First-person camera created");
 	}
 	
 	public override void _Input(InputEvent @event)
@@ -97,12 +98,12 @@ public partial class Player : CharacterBody3D
 				if (Input.MouseMode == Input.MouseModeEnum.Captured)
 				{
 					Input.MouseMode = Input.MouseModeEnum.Visible;
-					GD.Print("Player: Mouse capture released (ALT pressed)");
+					Log.Debug("Player: Mouse capture released (ALT pressed)");
 				}
 				else if (Input.MouseMode == Input.MouseModeEnum.Visible)
 				{
 					Input.MouseMode = Input.MouseModeEnum.Captured;
-					GD.Print("Player: Mouse capture enabled (ALT pressed)");
+					Log.Debug("Player: Mouse capture enabled (ALT pressed)");
 				}
 			}
 		}

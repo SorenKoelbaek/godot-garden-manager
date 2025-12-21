@@ -1,4 +1,5 @@
 using Godot;
+using Serilog;
 
 public partial class GameManager : Node
 {
@@ -6,9 +7,13 @@ public partial class GameManager : Node
 
     public string CurrentGardenUuid => _currentGardenUuid;
 
+    public override void _Ready()
+    {
+    }
+
     public void SetCurrentGardenUuid(string gardenUuid)
     {
-        GD.Print($"GameManager: Setting current garden UUID: {gardenUuid}");
+        Log.Debug("GameManager: Setting current garden UUID: {GardenUuid}", gardenUuid);
         _currentGardenUuid = gardenUuid;
     }
 }

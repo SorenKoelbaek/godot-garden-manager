@@ -1,0 +1,7 @@
+<Project>
+  <ItemGroup>
+    <PackageReference Include="Serilog" Version="4.3.0" />
+    <PackageReference Include="Serilog.Sinks.GodotConsole" Version="1.1.1" />
+  </ItemGroup>
+</Project>
+

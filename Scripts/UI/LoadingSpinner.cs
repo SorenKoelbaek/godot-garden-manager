@@ -1,4 +1,5 @@
 using Godot;
+using Serilog;
 
 public partial class LoadingSpinner : Control
 {
@@ -8,7 +9,7 @@ public partial class LoadingSpinner : Control
     
     public override void _Ready()
     {
-        GD.Print("LoadingSpinner: _Ready() called");
+        Log.Debug("LoadingSpinner: _Ready() called");
         
         // Disable input processing to prevent mouse movement during loading
         SetProcessInput(false);
@@ -22,13 +23,13 @@ public partial class LoadingSpinner : Control
         _loadingLabel = GetNodeOrNull<Label>("CenterContainer/ProgressBarContainer/LoadingLabel");
         if (_loadingLabel == null)
         {
-            GD.PrintErr("LoadingSpinner: LoadingLabel node not found!");
+            Log.Error("LoadingSpinner: LoadingLabel node not found!");
         }
         
         _progressBar = GetNodeOrNull<ProgressBar>("CenterContainer/ProgressBarContainer/ProgressBar");
         if (_progressBar == null)
         {
-            GD.PrintErr("LoadingSpinner: ProgressBar node not found!");
+            Log.Error("LoadingSpinner: ProgressBar node not found!");
         }
         else
         {
@@ -40,7 +41,7 @@ public partial class LoadingSpinner : Control
         _progressLabel = GetNodeOrNull<Label>("CenterContainer/ProgressBarContainer/ProgressLabel");
         if (_progressLabel == null)
         {
-            GD.PrintErr("LoadingSpinner: ProgressLabel node not found!");
+            Log.Error("LoadingSpinner: ProgressLabel node not found!");
         }
         
         // Start visible
@@ -71,7 +72,7 @@ public partial class LoadingSpinner : Control
             _progressLabel.Text = $"{progress:F1}%";
         }
         
-        GD.Print($"LoadingSpinner: Progress updated to {progress:F1}%");
+        Log.Debug("LoadingSpinner: Progress updated to {Progress:F1}%", progress);
     }
     
     public void SetStatus(string status)
@@ -89,7 +90,7 @@ public partial class LoadingSpinner : Control
         MouseFilter = MouseFilterEnum.Ignore;
         ProcessMode = ProcessModeEnum.Always;
         SetProgress(0.0f);
-        GD.Print("LoadingSpinner: Loading spinner shown");
+        Log.Debug("LoadingSpinner: Loading spinner shown");
     }
     
     public void HideSpinner()
@@ -97,7 +98,7 @@ public partial class LoadingSpinner : Control
         Visible = false;
         SetProcessInput(true);
         MouseFilter = MouseFilterEnum.Pass;
-        GD.Print("LoadingSpinner: Loading spinner hidden");
+        Log.Debug("LoadingSpinner: Loading spinner hidden");
     }
 }
 

@@ -1,4 +1,5 @@
 using Godot;
+using Serilog;
 
 public partial class MainMenu : Control
 {
@@ -10,7 +11,7 @@ public partial class MainMenu : Control
 
     public override void _Ready()
     {
-        GD.Print("MainMenu: _Ready() called");
+        Log.Debug("MainMenu: _Ready() called");
         
         // Get UI nodes
         _returnButton = GetNode<Button>("VBoxContainer/ReturnButton");
@@ -35,12 +36,12 @@ public partial class MainMenu : Control
         hoverStyleBox.BgColor = new Color(0.9f, 0.3f, 0.3f);
         _exitButton.AddThemeStyleboxOverride("hover", hoverStyleBox);
         
-        GD.Print("MainMenu: Buttons connected");
+        Log.Debug("MainMenu: Buttons connected");
     }
 
     private void OnReturnPressed()
     {
-        GD.Print("MainMenu: Return pressed - closing menu");
+        Log.Debug("MainMenu: Return pressed - closing menu");
         Hide();
         Input.MouseMode = Input.MouseModeEnum.Captured;
         
@@ -55,7 +56,7 @@ public partial class MainMenu : Control
 
     private void OnChangeGardensPressed()
     {
-        GD.Print("MainMenu: Change gardens pressed - navigating to splash screen");
+        Log.Information("MainMenu: Change gardens pressed - navigating to splash screen");
         // Clear current garden selection
         var gameManager = GetNode<GameManager>("/root/GameManager");
         gameManager.SetCurrentGardenUuid("");
@@ -64,7 +65,7 @@ public partial class MainMenu : Control
 
     private void OnSettingsPressed()
     {
-        GD.Print("MainMenu: Settings pressed - opening settings");
+        Log.Debug("MainMenu: Settings pressed - opening settings");
         var settingsScene = GD.Load<PackedScene>("res://scenes/ui/menus/settings_menu.tscn");
         if (settingsScene != null)
         {
@@ -74,26 +75,26 @@ public partial class MainMenu : Control
         }
         else
         {
-            GD.PrintErr("MainMenu: Failed to load settings scene");
+            Log.Error("MainMenu: Failed to load settings scene");
         }
     }
 
     private void OnLogoutPressed()
     {
-        GD.Print("MainMenu: Logout pressed");
+        Log.Information("MainMenu: Logout pressed");
         var tokenManager = GetNode<TokenManager>("/root/TokenManager");
         var credentialManager = new GardenManager.Auth.CredentialManager();
         
         tokenManager.ClearTokens();
         credentialManager.ClearCredentials();
         
-        GD.Print("MainMenu: Logged out - navigating to splash screen");
+        Log.Information("MainMenu: Logged out - navigating to splash screen");
         GetTree().ChangeSceneToFile("res://scenes/ui/splash_screen.tscn");
     }
 
     private void OnExitPressed()
     {
-        GD.Print("MainMenu: Exit pressed - quitting game");
+        Log.Information("MainMenu: Exit pressed - quitting game");
         GetTree().Quit();
     }
 

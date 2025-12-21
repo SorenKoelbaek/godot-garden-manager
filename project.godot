@@ -22,6 +22,7 @@ ApiClient="*res://Scripts/Api/ApiClient.cs"
 GameManager="*res://Scripts/Managers/GameManager.cs"
 TimeManager="*res://Scripts/Managers/TimeManager.cs"
 ToolManager="*res://Scripts/Managers/ToolManager.cs"
+LoggerManager="*res://Scripts/Managers/LoggerManager.cs"
 
 [display]
 

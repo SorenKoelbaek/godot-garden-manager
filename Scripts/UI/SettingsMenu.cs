@@ -1,6 +1,7 @@
 using GardenManager.Auth;
 using GardenManager.Models;
 using Godot;
+using Serilog;
 
 public partial class SettingsMenu : Control
 {
@@ -18,7 +19,7 @@ public partial class SettingsMenu : Control
 
     public override void _Ready()
     {
-        GD.Print("SettingsMenu: _Ready() called");
+        Log.Debug("SettingsMenu: _Ready() called");
         
         _credentialManager = new CredentialManager();
         
@@ -74,7 +75,7 @@ public partial class SettingsMenu : Control
         
         UpdateLabels();
         
-        GD.Print("SettingsMenu: Initialized");
+        Log.Debug("SettingsMenu: Initialized");
     }
 
     private void OnMouseSensitivityChanged(double value)
@@ -92,13 +93,13 @@ public partial class SettingsMenu : Control
     private void OnRenderGrassToggled(bool buttonPressed)
     {
         _settings.RenderGrass = buttonPressed;
-        GD.Print($"SettingsMenu: Render grass toggled: {buttonPressed}");
+        Log.Debug("SettingsMenu: Render grass toggled: {Toggled}", buttonPressed);
     }
 
     private void OnUseAdvancedSkyToggled(bool buttonPressed)
     {
         _settings.UseAdvancedSky = buttonPressed;
-        GD.Print($"SettingsMenu: Use advanced sky toggled: {buttonPressed}");
+        Log.Debug("SettingsMenu: Use advanced sky toggled: {Toggled}", buttonPressed);
     }
 
     private void UpdateLabels()
@@ -109,7 +110,7 @@ public partial class SettingsMenu : Control
 
     private void OnSavePressed()
     {
-        GD.Print($"SettingsMenu: Saving settings - Sensitivity: {_settings.MouseSensitivity}, Speed: {_settings.PlayerSpeed}, RenderGrass: {_settings.RenderGrass}, UseAdvancedSky: {_settings.UseAdvancedSky}");
+        Log.Debug("SettingsMenu: Saving settings - Sensitivity: {Sensitivity}, Speed: {Speed}, RenderGrass: {RenderGrass}, UseAdvancedSky: {UseAdvancedSky}", _settings.MouseSensitivity, _settings.PlayerSpeed, _settings.RenderGrass, _settings.UseAdvancedSky);
         _credentialManager.SaveSettings(_settings);
         
         // Apply to player if in world
@@ -121,7 +122,7 @@ public partial class SettingsMenu : Control
             {
                 player.MouseSensitivity = _settings.MouseSensitivity;
                 player.Speed = _settings.PlayerSpeed;
-                GD.Print("SettingsMenu: Applied settings to player");
+                Log.Debug("SettingsMenu: Applied settings to player");
             }
             
             // Apply grass setting to garden if in world
@@ -129,7 +130,7 @@ public partial class SettingsMenu : Control
             if (garden != null)
             {
                 garden.SetGrassVisible(_settings.RenderGrass);
-                GD.Print($"SettingsMenu: Applied grass setting to garden: {_settings.RenderGrass}");
+                Log.Debug("SettingsMenu: Applied grass setting to garden: {RenderGrass}", _settings.RenderGrass);
             }
             
             // Apply advanced sky setting to world manager if in world
@@ -137,7 +138,7 @@ public partial class SettingsMenu : Control
             if (worldManager != null)
             {
                 worldManager.SetAdvancedSky(_settings.UseAdvancedSky);
-                GD.Print($"SettingsMenu: Applied advanced sky setting: {_settings.UseAdvancedSky}");
+                Log.Debug("SettingsMenu: Applied advanced sky setting: {UseAdvancedSky}", _settings.UseAdvancedSky);
             }
         }
         
@@ -146,7 +147,7 @@ public partial class SettingsMenu : Control
 
     private void OnCancelPressed()
     {
-        GD.Print("SettingsMenu: Cancel pressed");
+        Log.Debug("SettingsMenu: Cancel pressed");
         QueueFree();
     }
 }
