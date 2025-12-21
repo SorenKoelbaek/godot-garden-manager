@@ -515,7 +515,8 @@ public partial class WorldManager : Node3D
 			// Create a default directional light for menu (if none exists)
 			_savedDirectionalLight = new DirectionalLight3D();
 			_savedDirectionalLight.Position = new Vector3(5, 10, 5);
-			_savedDirectionalLight.LookAt(Vector3.Zero);
+			// Use look_at_from_position since node is not in tree yet
+			_savedDirectionalLight.LookAtFromPosition(new Vector3(5, 10, 5), Vector3.Zero);
 			_savedDirectionalLight.LightColor = new Color(1.0f, 1.0f, 0.95f);
 			_savedDirectionalLight.LightEnergy = 1.0f;
 		}
@@ -1069,6 +1070,10 @@ public partial class WorldManager : Node3D
 			var plotInstance = vegetablePlotScene.Instantiate();
 			if (plotInstance != null && plotInstance is VegetablePlot vegetablePlot)
 			{
+				// Set plot identification
+				vegetablePlot.PlotUuid = plot.PlotUuid;
+				vegetablePlot.PlotName = plot.Name;
+				
 				// Set size before positioning
 				vegetablePlot.SetSize(width, depth);
 				

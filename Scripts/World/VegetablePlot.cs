@@ -4,6 +4,16 @@ public partial class VegetablePlot : Node3D
 {
 	private const float BaseSize = 1.0f; // Base size from scene (1x1)
 	
+	/// <summary>
+	/// Plot UUID for identification and API calls
+	/// </summary>
+	public string PlotUuid { get; set; } = string.Empty;
+	
+	/// <summary>
+	/// Plot name for display
+	/// </summary>
+	public string PlotName { get; set; } = string.Empty;
+	
 	public override void _Ready()
 	{
 		// Nothing needed

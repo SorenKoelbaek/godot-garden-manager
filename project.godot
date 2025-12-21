@@ -21,6 +21,7 @@ TokenManager="*res://Scripts/Auth/TokenManager.cs"
 ApiClient="*res://Scripts/Api/ApiClient.cs"
 GameManager="*res://Scripts/Managers/GameManager.cs"
 TimeManager="*res://Scripts/Managers/TimeManager.cs"
+CropManager="*res://Scripts/Managers/CropManager.cs"
 ToolManager="*res://Scripts/Managers/ToolManager.cs"
 LoggerManager="*res://Scripts/Managers/LoggerManager.cs"
 

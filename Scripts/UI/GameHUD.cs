@@ -14,6 +14,7 @@ public partial class GameHUD : Control
     private TimeManager _timeManager;
     private ToolManager _toolManager;
     private MainMenu _mainMenu;
+    private MessageHUD _messageHUD;
     
     public override void _Ready()
     {
@@ -57,6 +58,13 @@ public partial class GameHUD : Control
         // Find MainMenu to listen for visibility changes
         var mainWorld = GetTree().CurrentScene;
         _mainMenu = mainWorld?.GetNodeOrNull<MainMenu>("UICanvas/MainMenu");
+        
+        // Get MessageHUD (now a Label in the HBoxContainer)
+        _messageHUD = GetNodeOrNull<MessageHUD>("HBoxContainer/MessageHUD");
+        if (_messageHUD == null)
+        {
+            Log.Warning("GameHUD: MessageHUD not found in HBoxContainer");
+        }
         
         // Start hidden until loading is complete
         Visible = false;

@@ -22,6 +22,8 @@ public partial class Garden : Node3D
 	private const float MaxWindSpeed = 4.0f;
 
 	private ImageTexture _runtimeGrowthTexture; // Runtime-only texture
+	private Image? _growthImage; // Runtime image buffer for growth updates
+	private int _lastHour = -1; // Track last hour to detect hour changes
 
 
 	// --------------------------------------------------------------------
@@ -104,6 +106,12 @@ public partial class Garden : Node3D
 		// Get time manager
 		// ---------------------------------------------------------
 		_timeManager = GetNode<TimeManager>("/root/TimeManager");
+		
+		// Subscribe to time changes for hourly grass growth
+		if (_timeManager != null)
+		{
+			_timeManager.TimeChanged += OnTimeChanged;
+		}
 
 		Log.Debug("Garden: Initialized");
 	}
@@ -124,16 +132,16 @@ public partial class Garden : Node3D
 		}
 
 		// Create runtime image (L8 format, grayscale)
-		Image img = Image.Create(256, 256, false, Image.Format.L8);
-		img.Fill(new Color(0.35f, 0f, 0f, 1f)); // 35% grey baseline
+		_growthImage = Image.Create(256, 256, false, Image.Format.L8);
+		_growthImage.Fill(new Color(0.35f, 0f, 0f, 1f)); // 35% grey baseline (0.35 = partially grown)
 
 		// Convert to ImageTexture
-		_runtimeGrowthTexture = ImageTexture.CreateFromImage(img);
+		_runtimeGrowthTexture = ImageTexture.CreateFromImage(_growthImage);
 
 		// Assign to shader
 		shaderMat.SetShaderParameter("growth_texture", _runtimeGrowthTexture);
 
-		Log.Debug("Garden: Assigned runtime growth_texture to shader.");
+		Log.Debug("Garden: Assigned runtime growth_texture to shader (initialized at 35% grey).");
 	}
 
 
@@ -143,6 +151,88 @@ public partial class Garden : Node3D
 	public override void _Process(double delta)
 	{
 		UpdateWindSpeed();
+	}
+	
+	// --------------------------------------------------------------------
+	// TIME CHANGE HANDLER - Hourly grass growth
+	// --------------------------------------------------------------------
+	private void OnTimeChanged(float timeMinutes)
+	{
+		if (_timeManager == null || _growthImage == null || _runtimeGrowthTexture == null)
+			return;
+		
+		// Calculate current hour (0-23)
+		int currentHour = (int)(timeMinutes / 60.0f) % 24;
+		
+		// Check if hour has changed
+		if (currentHour != _lastHour)
+		{
+			_lastHour = currentHour;
+			GrowGrassHourly();
+		}
+	}
+	
+	// --------------------------------------------------------------------
+	// GROW GRASS - Make it 5% closer to black (fully grown) each hour
+	// --------------------------------------------------------------------
+	private void GrowGrassHourly()
+	{
+		if (_growthImage == null || _runtimeGrowthTexture == null)
+			return;
+		
+		int width = _growthImage.GetWidth();
+		int height = _growthImage.GetHeight();
+		bool textureUpdated = false;
+		
+		// Process each pixel
+		for (int y = 0; y < height; y++)
+		{
+			for (int x = 0; x < width; x++)
+			{
+				Color currentColor = _growthImage.GetPixel(x, y);
+				float currentValue = currentColor.R; // L8 format uses R channel for grayscale
+				
+				// Move 1% closer to black (0.0 = fully grown)
+				// Formula: newValue = currentValue * 0.99 (move 1% towards 0)
+				float newValue = currentValue * 0.99f;
+				
+				// Clamp to ensure we don't go below 0.0
+				newValue = Mathf.Max(0.0f, newValue);
+				
+				// Only update if value changed (optimization)
+				if (Mathf.Abs(newValue - currentValue) > 0.001f)
+				{
+					_growthImage.SetPixel(x, y, new Color(newValue, 0f, 0f, 1f));
+					textureUpdated = true;
+				}
+			}
+		}
+		
+		// Update texture if any pixels changed
+		if (textureUpdated)
+		{
+			_runtimeGrowthTexture.Update(_growthImage);
+			Log.Debug("Garden: Grass grew 1% closer to fully grown (hour {Hour})", _lastHour);
+		}
+	}
+	
+	// --------------------------------------------------------------------
+	// GET GROWTH IMAGE - For BrushOverlay to paint on
+	// --------------------------------------------------------------------
+	public Image? GetGrowthImage()
+	{
+		return _growthImage;
+	}
+	
+	// --------------------------------------------------------------------
+	// UPDATE GROWTH TEXTURE - Call after modifying growth image
+	// --------------------------------------------------------------------
+	public void UpdateGrowthTexture()
+	{
+		if (_growthImage != null && _runtimeGrowthTexture != null)
+		{
+			_runtimeGrowthTexture.Update(_growthImage);
+		}
 	}
 
 	private void UpdateWindSpeed()
@@ -244,6 +334,15 @@ public partial class Garden : Node3D
 		else
 		{
 			Log.Error("Garden: Cannot set grass visibility - grass node is null");
+		}
+	}
+	
+	public override void _ExitTree()
+	{
+		// Unsubscribe from time changes
+		if (_timeManager != null)
+		{
+			_timeManager.TimeChanged -= OnTimeChanged;
 		}
 	}
 }

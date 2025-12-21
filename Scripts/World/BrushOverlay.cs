@@ -1,4 +1,5 @@
 using Godot;
+using Serilog;
 
 public partial class BrushOverlay : Node3D
 {
@@ -12,6 +13,7 @@ public partial class BrushOverlay : Node3D
     private Camera3D _camera;
     private ToolManager _toolManager;
     private Garden _garden;
+    private Player? _player;
 
     private ImageTexture _growthTexture;   // Runtime texture from Garden
     private Image _growthImage;            // Runtime image buffer
@@ -21,7 +23,7 @@ public partial class BrushOverlay : Node3D
     // ------------------------------------------------------------------------
     public override void _Ready()
     {
-        GD.Print("BrushOverlay: Initializing");
+        Log.Debug("BrushOverlay: Initializing");
 
         _toolManager = GetNode<ToolManager>("/root/ToolManager");
 
@@ -37,7 +39,7 @@ public partial class BrushOverlay : Node3D
         }
 
         if (_garden == null)
-            GD.Print("BrushOverlay: Garden not found yet, will retry later");
+            Log.Debug("BrushOverlay: Garden not found yet, will retry later");
 
 
         if (_toolManager != null)
@@ -48,6 +50,51 @@ public partial class BrushOverlay : Node3D
         // Try initial texture load
         if (_garden != null)
             LoadGrowthTextureFromGarden();
+        
+        // Find and connect to Player for tool interaction events
+        FindAndConnectPlayer();
+    }
+    
+    private void FindAndConnectPlayer()
+    {
+        var mainWorld = GetTree().CurrentScene;
+        if (mainWorld != null)
+        {
+            _player = mainWorld.GetNodeOrNull<Player>("Player");
+            if (_player != null)
+            {
+                _player.ToolInteraction += OnToolInteraction;
+                Log.Debug("BrushOverlay: Connected to Player for tool interaction events");
+            }
+            else
+            {
+                Log.Debug("BrushOverlay: Player not found, will retry later");
+            }
+        }
+    }
+    
+    private void OnToolInteraction(int toolInt, string interactionType, Node3D? hitObject, Vector3 hitPosition)
+    {
+        ToolType tool = (ToolType)toolInt;
+        
+        // Only handle ground collision interactions for mower tool
+        if (tool != ToolType.Mower)
+            return;
+        
+        // Check if hit object is ground collision
+        if (hitObject == null)
+            return;
+        
+        string nodeName = hitObject.Name.ToString();
+        if (!nodeName.Contains("GroundCollision") && !nodeName.Contains("GroundPlane"))
+            return;
+        
+        // Handle both mouse click and mouse drag interactions
+        if (interactionType != "MouseClick" && interactionType != "MouseDrag")
+            return;
+        
+        // Paint at the hit position
+        PaintAtPosition(hitPosition);
     }
 
     // ------------------------------------------------------------------------
@@ -77,26 +124,27 @@ public partial class BrushOverlay : Node3D
 
         if (_growthTexture == null)
         {
-            GD.PrintErr("BrushOverlay: Garden returned null growth texture!");
+            Log.Error("BrushOverlay: Garden returned null growth texture!");
             return;
         }
 
-        _growthImage = _growthTexture.GetImage();
+        // Get the image directly from Garden (it maintains the image buffer)
+        _growthImage = _garden.GetGrowthImage();
 
         if (_growthImage == null)
         {
-            GD.PrintErr("BrushOverlay: growthTexture.GetImage() returned null!");
+            Log.Error("BrushOverlay: Garden returned null growth image!");
             return;
         }
 
-        GD.Print($"BrushOverlay: Loaded runtime growth texture Size={_growthImage.GetWidth()}x{_growthImage.GetHeight()}");
+        Log.Debug("BrushOverlay: Loaded runtime growth texture Size={Width}x{Height}", _growthImage.GetWidth(), _growthImage.GetHeight());
     }
 
     // ------------------------------------------------------------------------
     private void OnToolChanged(ToolType tool)
     {
         Visible = (tool == ToolType.Mower);
-        GD.Print($"BrushOverlay: Visibility set to {Visible}");
+        Log.Debug("BrushOverlay: Visibility set to {Visible}", Visible);
     }
 
     // ------------------------------------------------------------------------
@@ -113,7 +161,7 @@ public partial class BrushOverlay : Node3D
                 _camera = FindCameraRecursive(scene);
                 if (_camera != null)
                 {
-                    GD.Print("BrushOverlay: Camera attached late.");
+                    Log.Debug("BrushOverlay: Camera attached late.");
                 }
             }
         }
@@ -128,6 +176,23 @@ public partial class BrushOverlay : Node3D
             {
                 _garden = mainWorld.GetNodeOrNull<Garden>("Garden")
                           ?? FindGardenRecursive(mainWorld);
+            }
+        }
+        
+        // --------------------------------------------------------
+        // 2.5. Late Player Detection
+        // --------------------------------------------------------
+        if (_player == null)
+        {
+            var mainWorld = GetTree().CurrentScene;
+            if (mainWorld != null)
+            {
+                _player = mainWorld.GetNodeOrNull<Player>("Player");
+                if (_player != null)
+                {
+                    _player.ToolInteraction += OnToolInteraction;
+                    Log.Debug("BrushOverlay: Connected to Player for tool interaction events (late)");
+                }
             }
         }
 
@@ -162,29 +227,6 @@ public partial class BrushOverlay : Node3D
         return null;
     }
 
-    // ------------------------------------------------------------------------
-    public override void _Input(InputEvent @event)
-    {
-        if (!Visible || _growthImage == null || _garden == null)
-            return;
-
-        if (_toolManager == null || _toolManager.CurrentTool != ToolType.Mower)
-            return;
-
-        if (@event is InputEventMouseButton mouse)
-        {
-            if (mouse.ButtonIndex == MouseButton.Left)
-            {
-                _isPainting = mouse.Pressed;
-
-                if (mouse.Pressed)
-                    PaintAtPosition(GlobalPosition);
-            }
-        }
-
-        if (_isPainting && @event is InputEventMouseMotion)
-            PaintAtPosition(GlobalPosition);
-    }
 
     // ------------------------------------------------------------------------
     private void UpdateBrushPosition()
@@ -219,7 +261,7 @@ public partial class BrushOverlay : Node3D
     // ------------------------------------------------------------------------
     private void PaintAtPosition(Vector3 worldPos)
     {
-        if (_growthImage == null)
+        if (_growthImage == null || _garden == null || _toolManager == null)
             return;
 
         var localPos = _garden.GlobalTransform.AffineInverse() * worldPos;
@@ -239,7 +281,12 @@ public partial class BrushOverlay : Node3D
         int centerX = (int)(u * imgW);
         int centerY = (int)(v * imgH);
 
-        int radius = (int)(BrushSize * imgW / width);
+        // Get brush size from tool's disc diameter
+        var toolInfo = _toolManager.GetToolInfo(_toolManager.CurrentTool);
+        float brushDiameter = toolInfo?.DiscDiameter ?? BrushSize;
+        
+        // Calculate radius in pixels based on tool diameter
+        int radius = (int)(brushDiameter * imgW / width);
 
         for (int y = -radius; y <= radius; y++)
         {
@@ -256,9 +303,14 @@ public partial class BrushOverlay : Node3D
             }
         }
 
-        _growthTexture.Update(_growthImage);
+        // Update texture through Garden (it maintains the image buffer)
+        if (_garden != null)
+        {
+            _garden.UpdateGrowthTexture();
+        }
 
-        GD.Print($"BrushOverlay: Painted at pixel ({centerX},{centerY})");
+        Log.Debug("BrushOverlay: Painted at pixel ({CenterX},{CenterY}) with diameter {Diameter}m (radius {Radius}px)", 
+            centerX, centerY, brushDiameter, radius);
     }
 
     // ------------------------------------------------------------------------
@@ -266,5 +318,8 @@ public partial class BrushOverlay : Node3D
     {
         if (_toolManager != null)
             _toolManager.ToolChanged -= OnToolChanged;
+        
+        if (_player != null)
+            _player.ToolInteraction -= OnToolInteraction;
     }
 }
