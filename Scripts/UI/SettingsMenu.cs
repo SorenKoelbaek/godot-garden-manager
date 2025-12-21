@@ -9,6 +9,7 @@ public partial class SettingsMenu : Control
     private Label _mouseSensitivityLabel;
     private Label _playerSpeedLabel;
     private CheckBox _renderGrassCheckBox;
+    private CheckBox _useAdvancedSkyCheckBox;
     private Button _saveButton;
     private Button _cancelButton;
     
@@ -27,6 +28,7 @@ public partial class SettingsMenu : Control
         _mouseSensitivityLabel = GetNode<Label>("VBoxContainer/MouseSensitivityContainer/Label");
         _playerSpeedLabel = GetNode<Label>("VBoxContainer/PlayerSpeedContainer/Label");
         _renderGrassCheckBox = GetNode<CheckBox>("VBoxContainer/RenderGrassContainer/RenderGrassCheckBox");
+        _useAdvancedSkyCheckBox = GetNode<CheckBox>("VBoxContainer/UseAdvancedSkyContainer/UseAdvancedSkyCheckBox");
         _saveButton = GetNode<Button>("VBoxContainer/SaveButton");
         _cancelButton = GetNode<Button>("VBoxContainer/CancelButton");
         
@@ -38,8 +40,9 @@ public partial class SettingsMenu : Control
         _mouseSensitivitySlider.ValueChanged += OnMouseSensitivityChanged;
         _playerSpeedSlider.ValueChanged += OnPlayerSpeedChanged;
         
-        // Connect checkbox
+        // Connect checkboxes
         _renderGrassCheckBox.Toggled += OnRenderGrassToggled;
+        _useAdvancedSkyCheckBox.Toggled += OnUseAdvancedSkyToggled;
         
         // Load settings
         _settings = _credentialManager.LoadSettings();
@@ -49,7 +52,8 @@ public partial class SettingsMenu : Control
             {
                 MouseSensitivity = 0.003f,
                 PlayerSpeed = 5.0f,
-                RenderGrass = true
+                RenderGrass = true,
+                UseAdvancedSky = false
             };
         }
         
@@ -64,8 +68,9 @@ public partial class SettingsMenu : Control
         _playerSpeedSlider.Step = 0.1f;
         _playerSpeedSlider.Value = _settings.PlayerSpeed;
         
-        // Set checkbox value
+        // Set checkbox values
         _renderGrassCheckBox.ButtonPressed = _settings.RenderGrass;
+        _useAdvancedSkyCheckBox.ButtonPressed = _settings.UseAdvancedSky;
         
         UpdateLabels();
         
@@ -90,6 +95,12 @@ public partial class SettingsMenu : Control
         GD.Print($"SettingsMenu: Render grass toggled: {buttonPressed}");
     }
 
+    private void OnUseAdvancedSkyToggled(bool buttonPressed)
+    {
+        _settings.UseAdvancedSky = buttonPressed;
+        GD.Print($"SettingsMenu: Use advanced sky toggled: {buttonPressed}");
+    }
+
     private void UpdateLabels()
     {
         _mouseSensitivityLabel.Text = $"Mouse Sensitivity: {_settings.MouseSensitivity:F4}";
@@ -98,7 +109,7 @@ public partial class SettingsMenu : Control
 
     private void OnSavePressed()
     {
-        GD.Print($"SettingsMenu: Saving settings - Sensitivity: {_settings.MouseSensitivity}, Speed: {_settings.PlayerSpeed}, RenderGrass: {_settings.RenderGrass}");
+        GD.Print($"SettingsMenu: Saving settings - Sensitivity: {_settings.MouseSensitivity}, Speed: {_settings.PlayerSpeed}, RenderGrass: {_settings.RenderGrass}, UseAdvancedSky: {_settings.UseAdvancedSky}");
         _credentialManager.SaveSettings(_settings);
         
         // Apply to player if in world
@@ -119,6 +130,14 @@ public partial class SettingsMenu : Control
             {
                 garden.SetGrassVisible(_settings.RenderGrass);
                 GD.Print($"SettingsMenu: Applied grass setting to garden: {_settings.RenderGrass}");
+            }
+            
+            // Apply advanced sky setting to world manager if in world
+            var worldManager = mainWorld as WorldManager;
+            if (worldManager != null)
+            {
+                worldManager.SetAdvancedSky(_settings.UseAdvancedSky);
+                GD.Print($"SettingsMenu: Applied advanced sky setting: {_settings.UseAdvancedSky}");
             }
         }
         

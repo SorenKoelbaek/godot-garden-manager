@@ -12,6 +12,9 @@ namespace GardenManager.Models
 
         [JsonPropertyName("render_grass")]
         public bool RenderGrass { get; set; } = true;
+
+        [JsonPropertyName("use_advanced_sky")]
+        public bool UseAdvancedSky { get; set; } = false;
     }
 }
 

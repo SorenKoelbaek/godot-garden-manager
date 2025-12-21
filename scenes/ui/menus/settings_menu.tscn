@@ -56,6 +56,17 @@ text = "Render Grass"
 layout_mode = 2
 button_pressed = true
 
+[node name="UseAdvancedSkyContainer" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/UseAdvancedSkyContainer"]
+layout_mode = 2
+text = "Use Advanced Sky"
+
+[node name="UseAdvancedSkyCheckBox" type="CheckBox" parent="VBoxContainer/UseAdvancedSkyContainer"]
+layout_mode = 2
+button_pressed = false
+
 [node name="SaveButton" type="Button" parent="VBoxContainer"]
 layout_mode = 2
 text = "Save"
