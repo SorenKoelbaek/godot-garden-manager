@@ -1,4 +1,5 @@
 using Godot;
+using Serilog;
 
 public enum ToolType
 {
@@ -19,7 +20,7 @@ public partial class ToolManager : Node
             {
                 _currentTool = value;
                 ToolChanged?.Invoke(value);
-                GD.Print($"ToolManager: Tool changed to {value}");
+                Log.Debug("ToolManager: Tool changed to {Tool}", value);
             }
         }
     }
@@ -28,7 +29,7 @@ public partial class ToolManager : Node
     
     public override void _Ready()
     {
-        GD.Print("ToolManager: Initialized");
+        Log.Information("ToolManager: Initialized");
     }
     
     public override void _Input(InputEvent @event)

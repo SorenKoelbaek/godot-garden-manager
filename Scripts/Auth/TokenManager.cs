@@ -1,4 +1,5 @@
 using Godot;
+using Serilog;
 
 public partial class TokenManager : Node
 {
@@ -12,19 +13,19 @@ public partial class TokenManager : Node
 
 	public override void _Ready()
 	{
-		GD.Print("TokenManager: _Ready() called");
+		Log.Debug("TokenManager: _Ready() called");
 	}
 
 	public void SetTokens(string accessToken, string refreshToken)
 	{
-		GD.Print("TokenManager: SetTokens called");
+		Log.Debug("TokenManager: SetTokens called");
 		_accessToken = accessToken;
 		_refreshToken = refreshToken;
 	}
 
 	public void ClearTokens()
 	{
-		GD.Print("TokenManager: ClearTokens called");
+		Log.Debug("TokenManager: ClearTokens called");
 		_accessToken = string.Empty;
 		_refreshToken = string.Empty;
 	}

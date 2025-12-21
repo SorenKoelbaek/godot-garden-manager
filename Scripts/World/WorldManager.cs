@@ -5,6 +5,7 @@ using GardenManager.Auth;
 using GardenManager.Managers;
 using GardenManager.Models;
 using Godot;
+using Serilog;
 
 public partial class WorldManager : Node3D
 {
@@ -29,7 +30,7 @@ public partial class WorldManager : Node3D
 
 	public override void _Ready()
 	{
-		GD.Print("WorldManager: _Ready() called");
+		Log.Debug("WorldManager: _Ready() called");
 		
 		// Get singletons
 		_gameManager = GetNode<GameManager>("/root/GameManager");
@@ -71,7 +72,7 @@ public partial class WorldManager : Node3D
 		// Initialize sky manager
 		_skyManager = new SkyManager(_currentEnvironment, _timeManager, this);
 		
-		GD.Print("WorldManager: Environment set up with sky and fog");
+		Log.Debug("WorldManager: Environment set up with sky and fog");
 		
 		// Get references to UI and player
 		// WorldManager is attached to MainWorld, and UICanvas is a child of MainWorld
@@ -81,7 +82,7 @@ public partial class WorldManager : Node3D
 			_loadingSpinner = uiCanvas.GetNodeOrNull<LoadingSpinner>("LoadingSpinner");
 			_gameHUD = uiCanvas.GetNodeOrNull<GameHUD>("GameHUD");
 			
-			GD.Print($"WorldManager: Found UICanvas - spinner: {_loadingSpinner != null}, HUD: {_gameHUD != null}");
+			Log.Debug("WorldManager: Found UICanvas - spinner: {SpinnerFound}, HUD: {HUDFound}", _loadingSpinner != null, _gameHUD != null);
 			
 			// Ensure HUD is hidden during loading
 			if (_gameHUD != null)
@@ -90,7 +91,7 @@ public partial class WorldManager : Node3D
 			}
 			else
 			{
-				GD.PrintErr("WorldManager: GameHUD not found in UICanvas!");
+				Log.Error("WorldManager: GameHUD not found in UICanvas!");
 			}
 			
 			// Ensure spinner is visible and spinning
@@ -102,12 +103,12 @@ public partial class WorldManager : Node3D
 			}
 			else
 			{
-				GD.PrintErr("WorldManager: LoadingSpinner not found in UICanvas!");
+				Log.Error("WorldManager: LoadingSpinner not found in UICanvas!");
 			}
 		}
 		else
 		{
-			GD.PrintErr("WorldManager: UICanvas not found! Path: UICanvas");
+			Log.Error("WorldManager: UICanvas not found! Path: UICanvas");
 		}
 		
 		_player = GetNodeOrNull<Player>("Player");
@@ -130,7 +131,7 @@ public partial class WorldManager : Node3D
 	private async System.Threading.Tasks.Task LoadGardenAsync()
 	{
 		var gardenUuid = _gameManager.CurrentGardenUuid;
-		GD.Print($"WorldManager: Loading garden: {gardenUuid}");
+		Log.Information("WorldManager: Loading garden: {GardenUuid}", gardenUuid);
 		
 		// Reset progress tracker
 		if (_progressTracker != null)
@@ -149,7 +150,7 @@ public partial class WorldManager : Node3D
 		
 		if (string.IsNullOrEmpty(gardenUuid))
 		{
-			GD.PrintErr("WorldManager: No garden UUID set - creating default plane");
+			Log.Warning("WorldManager: No garden UUID set - creating default plane");
 			// Create a default garden for testing
 			gardenData = new GardenManager.Models.Garden
 			{
@@ -171,7 +172,7 @@ public partial class WorldManager : Node3D
 			gardenData = await _gardenService.GetGardenAsync(gardenUuid);
 			if (gardenData == null)
 			{
-				GD.PrintErr("WorldManager: Failed to load garden - creating default plane");
+				Log.Error("WorldManager: Failed to load garden - creating default plane");
 				gardenData = new GardenManager.Models.Garden
 				{
 					GardenUuid = gardenUuid,
@@ -183,7 +184,7 @@ public partial class WorldManager : Node3D
 			}
 		}
 
-		GD.Print($"WorldManager: Garden loaded: {gardenData.Name}, Size: {gardenData.Width}x{gardenData.Depth} {gardenData.Unit}");
+		Log.Information("WorldManager: Garden loaded: {GardenName}, Size: {Width}x{Depth} {Unit}", gardenData.Name, gardenData.Width, gardenData.Depth, gardenData.Unit);
 		
 		// Load and instantiate the Garden scene (Node3D, not the API model)
 		var gardenScene = GD.Load<PackedScene>("res://scenes/world/garden.tscn");
@@ -205,7 +206,7 @@ public partial class WorldManager : Node3D
 				// Get the ground plane reference for other operations
 				_groundPlane = gardenNode.GetNode<MeshInstance3D>("GroundPlane");
 				
-				GD.Print("WorldManager: Created garden from scene");
+				Log.Debug("WorldManager: Created garden from scene");
 				
 				// Wait for garden to be ready (grass generation)
 				await WaitForGardenReady(gardenNode);
@@ -215,14 +216,14 @@ public partial class WorldManager : Node3D
 			}
 			else
 			{
-				GD.PrintErr("WorldManager: Failed to instantiate garden scene - falling back to manual creation");
+				Log.Error("WorldManager: Failed to instantiate garden scene - falling back to manual creation");
 				CreateGardenPlane(gardenData);
 				CreateGardenPerimeter(gardenData);
 			}
 		}
 		else
 		{
-			GD.PrintErr("WorldManager: Failed to load garden scene - falling back to manual creation");
+			Log.Error("WorldManager: Failed to load garden scene - falling back to manual creation");
 			CreateGardenPlane(gardenData);
 			CreateGardenPerimeter(gardenData);
 		}
@@ -297,7 +298,7 @@ public partial class WorldManager : Node3D
 		var baseTwigMaterial = GD.Load<Material>("res://resources/plot_types/twig_mat.tres");
 		if (baseTwigMaterial == null)
 		{
-			GD.PrintErr("WorldManager: Failed to load base twig material for season update!");
+			Log.Error("WorldManager: Failed to load base twig material for season update!");
 			return;
 		}
 		
@@ -337,7 +338,7 @@ public partial class WorldManager : Node3D
 			}
 		}
 		
-		GD.Print($"WorldManager: Updated {_fruitTreeBaseTwigScales.Count} trees for month {currentMonth} (twig multiplier: {monthTwigMultiplier:F2})");
+		Log.Debug("WorldManager: Updated {TreeCount} trees for month {Month} (twig multiplier: {Multiplier:F2})", _fruitTreeBaseTwigScales.Count, currentMonth, monthTwigMultiplier);
 	}
 	
 	/// <summary>
@@ -396,7 +397,7 @@ public partial class WorldManager : Node3D
 	
 	private async System.Threading.Tasks.Task WaitForGardenReady(Node3D gardenNode)
 	{
-		GD.Print("WorldManager: Waiting for garden to be ready...");
+		Log.Debug("WorldManager: Waiting for garden to be ready...");
 		
 		// Poll until garden is ready
 		int maxAttempts = 300; // 5 seconds max wait (300 * ~16ms)
@@ -412,14 +413,14 @@ public partial class WorldManager : Node3D
 				{
 					if (garden.IsReady)
 					{
-						GD.Print("WorldManager: Garden is ready!");
+						Log.Debug("WorldManager: Garden is ready!");
 						return;
 					}
 				}
 			}
 			catch (System.Exception ex)
 			{
-				GD.PrintErr($"WorldManager: Error checking garden ready state: {ex.Message}");
+				Log.Error(ex, "WorldManager: Error checking garden ready state");
 			}
 			
 			// Wait a frame before checking again
@@ -427,7 +428,7 @@ public partial class WorldManager : Node3D
 			attempts++;
 		}
 		
-		GD.PrintErr("WorldManager: Timeout waiting for garden to be ready");
+		Log.Error("WorldManager: Timeout waiting for garden to be ready");
 	}
 	
 	private void ApplyGrassSetting(Node3D gardenNode)
@@ -439,7 +440,7 @@ public partial class WorldManager : Node3D
 		if (settings != null && gardenNode is Garden garden)
 		{
 			garden.SetGrassVisible(settings.RenderGrass);
-			GD.Print($"WorldManager: Applied grass setting: {settings.RenderGrass}");
+			Log.Debug("WorldManager: Applied grass setting: {RenderGrass}", settings.RenderGrass);
 		}
 		else if (settings == null)
 		{
@@ -447,14 +448,14 @@ public partial class WorldManager : Node3D
 			if (gardenNode is Garden defaultGarden)
 			{
 				defaultGarden.SetGrassVisible(true);
-				GD.Print("WorldManager: No settings found, defaulting grass to visible");
+				Log.Debug("WorldManager: No settings found, defaulting grass to visible");
 			}
 		}
 	}
 	
 	private void FinishLoading()
 	{
-		GD.Print("WorldManager: Finishing loading - showing player and HUD");
+		Log.Debug("WorldManager: Finishing loading - showing player and HUD");
 		
 		// Re-enable input globally
 		GetViewport().GuiDisableInput = false;
@@ -462,14 +463,14 @@ public partial class WorldManager : Node3D
 		// Hide spinner FIRST
 		if (_loadingSpinner != null)
 		{
-			GD.Print($"WorldManager: Hiding spinner (spinner is null: {_loadingSpinner == null})");
+			Log.Debug("WorldManager: Hiding spinner (spinner is null: {IsNull})", _loadingSpinner == null);
 			_loadingSpinner.Visible = false;
 			_loadingSpinner.HideSpinner();
-			GD.Print($"WorldManager: Spinner hidden, visible state: {_loadingSpinner.Visible}");
+			Log.Debug("WorldManager: Spinner hidden, visible state: {Visible}", _loadingSpinner.Visible);
 		}
 		else
 		{
-			GD.PrintErr("WorldManager: LoadingSpinner is null! Cannot hide it.");
+			Log.Error("WorldManager: LoadingSpinner is null! Cannot hide it.");
 		}
 		
 		// Show player and enable input
@@ -487,15 +488,15 @@ public partial class WorldManager : Node3D
 		}
 		else
 		{
-			GD.PrintErr("WorldManager: GameHUD is null! Cannot show it.");
+			Log.Error("WorldManager: GameHUD is null! Cannot show it.");
 		}
 		
-		GD.Print("WorldManager: Loading complete");
+		Log.Information("WorldManager: Loading complete");
 	}
 	
 	private void SaveCurrentLighting()
 	{
-		GD.Print("WorldManager: Saving current lighting state for menu restoration");
+		Log.Debug("WorldManager: Saving current lighting state for menu restoration");
 		
 		// Save current environment (deep copy)
 		if (_currentEnvironment != null)
@@ -522,7 +523,7 @@ public partial class WorldManager : Node3D
 	
 	public void RestoreMenuLighting()
 	{
-		GD.Print("WorldManager: Restoring menu lighting");
+		Log.Debug("WorldManager: Restoring menu lighting");
 		
 		// Restore saved environment
 		if (_savedEnvironment != null)
@@ -545,7 +546,7 @@ public partial class WorldManager : Node3D
 	
 	public void RestoreTimeBasedLighting()
 	{
-		GD.Print("WorldManager: Restoring time-based lighting");
+		Log.Debug("WorldManager: Restoring time-based lighting");
 		
 		// Show sun light
 		if (_sunLight != null)
@@ -848,7 +849,7 @@ public partial class WorldManager : Node3D
 	
 	public void SetAdvancedSky(bool enabled)
 	{
-		GD.Print($"WorldManager: Setting advanced sky to {enabled}");
+		Log.Debug("WorldManager: Setting advanced sky to {Enabled}", enabled);
 		if (_skyManager != null)
 		{
 			_skyManager.SwitchSkyType(enabled);
@@ -862,7 +863,7 @@ public partial class WorldManager : Node3D
 		}
 		else
 		{
-			GD.PrintErr("WorldManager: SkyManager not initialized, cannot set advanced sky");
+			Log.Error("WorldManager: SkyManager not initialized, cannot set advanced sky");
 		}
 	}
 
@@ -882,11 +883,11 @@ public partial class WorldManager : Node3D
 	/// </summary>
 	private async System.Threading.Tasks.Task LoadPlotsAsync(string gardenUuid, GardenManager.Models.Garden garden)
 	{
-		GD.Print($"WorldManager: Loading plots for garden: {gardenUuid}");
+		Log.Debug("WorldManager: Loading plots for garden: {GardenUuid}", gardenUuid);
 		
 		if (_progressTracker == null)
 		{
-			GD.PrintErr("WorldManager: Progress tracker not initialized!");
+			Log.Error("WorldManager: Progress tracker not initialized!");
 			return;
 		}
 		
@@ -899,7 +900,7 @@ public partial class WorldManager : Node3D
 		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		
 		var plots = await _gardenService.GetPlotsAsync(gardenUuid);
-		GD.Print($"WorldManager: Loaded {plots.Count} plots");
+		Log.Debug("WorldManager: Loaded {PlotCount} plots", plots.Count);
 		
 		// Complete getting plots phase
 		_progressTracker.CompletePhase("GettingPlots", "Plots loaded");
@@ -914,7 +915,7 @@ public partial class WorldManager : Node3D
 			p.PlotType != null && 
 			p.PlotType.Name.ToLower().Contains("fruit tree")).ToList();
 		
-		GD.Print($"WorldManager: Found {vegetablePlots.Count} vegetable plots, {fruitTreePlots.Count} fruit tree plots");
+		Log.Debug("WorldManager: Found {VegetableCount} vegetable plots, {FruitTreeCount} fruit tree plots", vegetablePlots.Count, fruitTreePlots.Count);
 		
 		// Count only rectangle vegetable plots (the ones we actually create)
 		int vegetablePlotCount = vegetablePlots.Count(p => p.Shape.ToLower() == "rectangle");
@@ -943,7 +944,7 @@ public partial class WorldManager : Node3D
 			return;
 		}
 		
-		GD.Print($"WorldManager: Registered phases - VegetablePlots: {vegetablePlotCount} items, FruitTrees: {fruitTreePlots.Count} items");
+		Log.Debug("WorldManager: Registered phases - VegetablePlots: {VegetableCount} items, FruitTrees: {FruitTreeCount} items", vegetablePlotCount, fruitTreePlots.Count);
 		
 		// Yield frame after filtering
 		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -1030,7 +1031,7 @@ public partial class WorldManager : Node3D
 
 	private void CreatePlotRectangle(Plot plot, GardenManager.Models.Garden garden)
 	{
-		GD.Print($"WorldManager: Creating rectangle plot: {plot.Name} at ({plot.X}, {plot.Y}), size: {plot.Width}x{plot.Depth}");
+		Log.Debug("WorldManager: Creating rectangle plot: {PlotName} at ({X}, {Y}), size: {Width}x{Depth}", plot.Name, plot.X, plot.Y, plot.Width, plot.Depth);
 		
 		// Convert plot dimensions to meters if needed
 		float width = (float)plot.Width;
@@ -1079,13 +1080,13 @@ public partial class WorldManager : Node3D
 				
 				AddChild(vegetablePlot);
 				
-				GD.Print($"WorldManager: Created vegetable plot prefab - upper-left corner at ({plotUpperLeftX}, {plotUpperLeftZ}), center at ({plotCenterX}, 0, {plotCenterZ}), size: {width}x{depth}");
+				Log.Debug("WorldManager: Created vegetable plot prefab - upper-left corner at ({UpperLeftX}, {UpperLeftZ}), center at ({CenterX}, 0, {CenterZ}), size: {Width}x{Depth}", plotUpperLeftX, plotUpperLeftZ, plotCenterX, plotCenterZ, width, depth);
 				return;
 			}
 		}
 		
 		// Fallback to simple box if scene not found
-		GD.Print("WorldManager: VegetablePlot scene not found, using simple box fallback");
+		Log.Warning("WorldManager: VegetablePlot scene not found, using simple box fallback");
 		
 		// Create box mesh for the plot (cube/box with height 0.35m)
 		var boxMesh = new BoxMesh();
@@ -1118,7 +1119,7 @@ public partial class WorldManager : Node3D
 		staticBody.AddChild(collisionShape);
 		AddChild(staticBody);
 		
-		GD.Print($"WorldManager: Created plot box - upper-left corner at ({plotUpperLeftX}, {plotUpperLeftZ}), center at ({plotCenterX}, {0.35f / 2.0f}, {plotCenterZ}) with collision");
+		Log.Debug("WorldManager: Created plot box - upper-left corner at ({UpperLeftX}, {UpperLeftZ}), center at ({CenterX}, {CenterY}, {CenterZ}) with collision", plotUpperLeftX, plotUpperLeftZ, plotCenterX, 0.35f / 2.0f, plotCenterZ);
 	}
 
 	private async System.Threading.Tasks.Task CreateFruitTreeAsync(Plot plot, GardenManager.Models.Garden garden)
@@ -1126,7 +1127,7 @@ public partial class WorldManager : Node3D
 		// Yield frame at start to allow spinner to update
 		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
 		
-		GD.Print($"WorldManager: Creating fruit tree plot: {plot.Name} at ({plot.X}, {plot.Y}), size: {plot.Width}x{plot.Depth}");
+		Log.Debug("WorldManager: Creating fruit tree plot: {PlotName} at ({X}, {Y}), size: {Width}x{Depth}", plot.Name, plot.X, plot.Y, plot.Width, plot.Depth);
 		
 		// Convert garden coordinates to 3D world coordinates (upper-left corner)
 		var plotUpperLeft = ConvertGardenToWorldCoordinates(plot.X, plot.Y, garden);
@@ -1175,7 +1176,7 @@ public partial class WorldManager : Node3D
 		
 		if (trunkMaterial == null || baseTwigMaterial == null)
 		{
-			GD.PrintErr("WorldManager: Failed to load tree materials!");
+			Log.Error("WorldManager: Failed to load tree materials!");
 			return;
 		}
 		
@@ -1186,7 +1187,7 @@ public partial class WorldManager : Node3D
 		var twigMaterial = baseTwigMaterial.Duplicate() as StandardMaterial3D;
 		if (twigMaterial == null)
 		{
-			GD.PrintErr("WorldManager: Failed to duplicate twig material!");
+			Log.Error("WorldManager: Failed to duplicate twig material!");
 			return;
 		}
 		
@@ -1194,7 +1195,7 @@ public partial class WorldManager : Node3D
 		Color twigColor = GetTwigColorForMonth(_timeManager != null ? _timeManager.CurrentMonth : 7);
 		if (_timeManager != null)
 		{
-			GD.Print($"WorldManager: Setting twig color to {twigColor} for month {_timeManager.CurrentMonth}");
+			Log.Debug("WorldManager: Setting twig color to {TwigColor} for month {Month}", twigColor, _timeManager.CurrentMonth);
 		}
 		
 		// Apply the color to the material
@@ -1207,11 +1208,11 @@ public partial class WorldManager : Node3D
 		var treeType = TreeTypeLoader.GetRandomTreeType();
 		if (treeType == null)
 		{
-			GD.PrintErr("WorldManager: Failed to get random tree type!");
+			Log.Error("WorldManager: Failed to get random tree type!");
 			return;
 		}
 		
-		GD.Print($"WorldManager: Selected tree type: {treeType.Name}");
+		Log.Debug("WorldManager: Selected tree type: {TreeTypeName}", treeType.Name);
 		
 		// Yield frame before instantiating tree
 		await GetTree().ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
@@ -1379,16 +1380,16 @@ public partial class WorldManager : Node3D
 				// This allows seasonal percentages to be relative to each tree's individual base
 				_fruitTreeBaseTwigScales[tree3D] = treeBaseTwigScale;
 				
-				GD.Print($"WorldManager: Created fruit tree '{treeType.Name}' at position ({treeX}, 0, {treeZ}) with seed {seed}, scale factor: {scaleFactor:F2} (plot size avg: {plotSizeAverage:F2}m)");
+				Log.Debug("WorldManager: Created fruit tree '{TreeTypeName}' at position ({TreeX}, 0, {TreeZ}) with seed {Seed}, scale factor: {ScaleFactor:F2} (plot size avg: {PlotSizeAvg:F2}m)", treeType.Name, treeX, treeZ, seed, scaleFactor, plotSizeAverage);
 			}
 			else
 			{
-				GD.PrintErr("WorldManager: Failed to instantiate Tree3D node!");
+				Log.Error("WorldManager: Failed to instantiate Tree3D node!");
 			}
 		}
 		else
 		{
-			GD.PrintErr("WorldManager: Cannot instantiate Tree3D class! Make sure the GDExtension is loaded.");
+			Log.Error("WorldManager: Cannot instantiate Tree3D class! Make sure the GDExtension is loaded.");
 		}
 	}
 
@@ -1438,12 +1439,12 @@ public partial class WorldManager : Node3D
 			material.Uv1Scale = new Vector3(textureScale, textureScale, 1.0f);
 			// Enable texture filtering for better quality
 			material.TextureFilter = BaseMaterial3D.TextureFilterEnum.Linear;
-			GD.Print($"WorldManager: Applied grass texture with scale {textureScale}");
+			Log.Debug("WorldManager: Applied grass texture with scale {TextureScale}", textureScale);
 		}
 		else
 		{
-			GD.Print("WorldManager: No grass texture found, using solid green color");
-			GD.Print("WorldManager: To add grass texture, place grass.png in resources/ folder");
+			Log.Debug("WorldManager: No grass texture found, using solid green color");
+			Log.Debug("WorldManager: To add grass texture, place grass.png in resources/ folder");
 		}
 		
 		_groundPlane.MaterialOverride = material;
@@ -1474,7 +1475,7 @@ public partial class WorldManager : Node3D
 		directionalLight.LightColor = new Color(1.0f, 1.0f, 0.95f);
 		AddChild(directionalLight);
 		
-		GD.Print($"WorldManager: Created garden plane: {width}m x {depth}m with lighting and collision");
+		Log.Debug("WorldManager: Created garden plane: {Width}m x {Depth}m with lighting and collision", width, depth);
 	}
 
 	private void CreateGardenPerimeter(GardenManager.Models.Garden garden)
@@ -1530,7 +1531,7 @@ public partial class WorldManager : Node3D
 			wallMaterial
 		);
 
-		GD.Print($"WorldManager: Created garden perimeter walls outside garden bounds: {width}m x {depth}m");
+		Log.Debug("WorldManager: Created garden perimeter walls outside garden bounds: {Width}m x {Depth}m", width, depth);
 	}
 
 	// CreateGrass is no longer needed - grass is now part of the Garden scene

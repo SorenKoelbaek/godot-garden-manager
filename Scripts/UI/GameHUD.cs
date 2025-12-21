@@ -1,4 +1,5 @@
 using Godot;
+using Serilog;
 
 public partial class GameHUD : Control
 {
@@ -16,7 +17,7 @@ public partial class GameHUD : Control
     
     public override void _Ready()
     {
-        GD.Print("GameHUD: _Ready() called");
+        Log.Debug("GameHUD: _Ready() called");
         
         // Get singletons
         _timeManager = GetNode<TimeManager>("/root/TimeManager");
@@ -60,14 +61,14 @@ public partial class GameHUD : Control
         // Start hidden until loading is complete
         Visible = false;
         
-        GD.Print("GameHUD: Initialized (hidden until loading complete)");
+        Log.Debug("GameHUD: Initialized (hidden until loading complete)");
     }
     
     public void ShowHUD()
     {
         _loadingComplete = true;
         Visible = true;
-        GD.Print("GameHUD: HUD shown");
+        Log.Debug("GameHUD: HUD shown");
     }
     
     private bool _loadingComplete = false;

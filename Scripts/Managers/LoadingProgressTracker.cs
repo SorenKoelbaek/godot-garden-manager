@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Godot;
+using Serilog;
 
 namespace GardenManager.Managers
 {
@@ -38,7 +39,7 @@ namespace GardenManager.Managers
         {
             if (_phases.ContainsKey(name))
             {
-                GD.PrintErr($"LoadingProgressTracker: Phase '{name}' already registered!");
+                Log.Warning("LoadingProgressTracker: Phase '{PhaseName}' already registered!", name);
                 return;
             }
 
@@ -51,7 +52,7 @@ namespace GardenManager.Managers
             };
 
             _totalWeight += weight;
-            GD.Print($"LoadingProgressTracker: Registered phase '{name}' with weight {weight}%");
+            Log.Debug("LoadingProgressTracker: Registered phase '{PhaseName}' with weight {Weight}%", name, weight);
         }
 
         /// <summary>
@@ -64,7 +65,7 @@ namespace GardenManager.Managers
         {
             if (names == null || names.Length == 0)
             {
-                GD.PrintErr("LoadingProgressTracker: Cannot register equal phases - no names provided");
+                Log.Warning("LoadingProgressTracker: Cannot register equal phases - no names provided");
                 return;
             }
 
@@ -74,7 +75,7 @@ namespace GardenManager.Managers
                 RegisterPhase(name, weightPerPhase);
             }
 
-            GD.Print($"LoadingProgressTracker: Registered {names.Length} equal phases, {weightPerPhase:F2}% each");
+            Log.Debug("LoadingProgressTracker: Registered {Count} equal phases, {WeightPerPhase:F2}% each", names.Length, weightPerPhase);
         }
 
         /// <summary>
@@ -84,7 +85,7 @@ namespace GardenManager.Managers
         {
             if (!_phases.ContainsKey(phaseName))
             {
-                GD.PrintErr($"LoadingProgressTracker: Phase '{phaseName}' not registered!");
+                Log.Warning("LoadingProgressTracker: Phase '{PhaseName}' not registered!", phaseName);
                 return;
             }
 
@@ -101,7 +102,7 @@ namespace GardenManager.Managers
         {
             if (!_phases.ContainsKey(phaseName))
             {
-                GD.PrintErr($"LoadingProgressTracker: Phase '{phaseName}' not registered!");
+                Log.Warning("LoadingProgressTracker: Phase '{PhaseName}' not registered!", phaseName);
                 return;
             }
 
@@ -164,7 +165,7 @@ namespace GardenManager.Managers
         {
             if (_totalWeight == 0.0f)
             {
-                GD.PrintErr("LoadingProgressTracker: No phases registered, cannot calculate progress!");
+                Log.Warning("LoadingProgressTracker: No phases registered, cannot calculate progress!");
                 return;
             }
 
@@ -202,3 +203,4 @@ namespace GardenManager.Managers
         public bool IsComplete => _phases.Values.All(p => p.IsComplete);
     }
 }
+
