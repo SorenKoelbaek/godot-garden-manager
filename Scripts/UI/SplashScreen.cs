@@ -51,7 +51,7 @@ namespace GardenManager.UI
 			_statusLabel = GetNode<Label>("VBoxContainer/StatusLabel");
 			_gardensContainer = GetNode<VBoxContainer>("VBoxContainer/GardensContainer");
 			
-			Log.Debug("SplashScreen: UI nodes found - Username: {UsernameFound}, Password: {PasswordFound}, GameKey: {GameKeyFound}, Button: {ButtonFound}", _usernameInput != null, _passwordInput != null, _gameKeyInput != null, _loginButton != null);
+			Log.Debug("SplashScreen: UI nodes found - Username: {UsernameFound}, PwdInput: {PwdFound}, KeyInput: {KeyFound}, Button: {ButtonFound}", _usernameInput != null, _passwordInput != null, _gameKeyInput != null, _loginButton != null);
 
 			// Connect button
 			_loginButton.Pressed += OnLoginButtonPressed;
@@ -103,7 +103,7 @@ namespace GardenManager.UI
 
 		private async Task AutoLoginAsync(Credentials credentials)
 		{
-			Log.Debug("SplashScreen: Auto-login with username: {Username}", credentials.Username);
+			Log.Debug("SplashScreen: Attempting auto-login");
 			
 			var success = await _authService.LoginAsync(credentials.Username, credentials.Password, credentials.GameKey);
 			Log.Debug("SplashScreen: Auto-login result: {Success}", success);
@@ -133,7 +133,7 @@ namespace GardenManager.UI
 			var gameKey = _gameKeyInput.Text;
 
 			// Security: Only log lengths, never actual values
-			Log.Debug("SplashScreen: Username: {Username}, Password length: {PasswordLength}, GameKey length: {GameKeyLength}", username, password.Length, gameKey.Length);
+			Log.Debug("SplashScreen: Login attempt - credential lengths: {PwdLen}, {KeyLen}", password.Length, gameKey.Length);
 
 			if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password) || string.IsNullOrEmpty(gameKey))
 			{
