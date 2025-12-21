@@ -85,9 +85,12 @@ void vertex() {
 
 	float grow_factor = texture(growth_texture, COLOR.rb).r;
 
+	// Calculate height multiplier: fully grown (grow_factor=0.0) = 2x height, mowed (grow_factor=1.0) = 0x height
+	// Formula: (1.0 - grow_factor) gives base growth, then multiply by (1.0 + (1.0 - grow_factor)) to double fully grown
+	float height_multiplier = (1.0 - grow_factor) * (1.0 + (1.0 - grow_factor));
 
 	vertex.xz *= INSTANCE_CUSTOM.x;
-	vertex.y *= INSTANCE_CUSTOM.y * (1.0 - grow_factor);
+	vertex.y *= INSTANCE_CUSTOM.y * height_multiplier;
 
 
 

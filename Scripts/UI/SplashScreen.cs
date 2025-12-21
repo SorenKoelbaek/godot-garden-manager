@@ -10,7 +10,7 @@ using Serilog;
 
 namespace GardenManager.UI
 {
-	public partial class SplashScreen : Control
+	public partial class SplashScreen : BaseMenu
 	{
 		private LineEdit _usernameInput;
 		private LineEdit _passwordInput;

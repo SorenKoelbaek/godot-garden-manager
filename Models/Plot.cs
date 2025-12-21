@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 
 namespace GardenManager.Models
@@ -39,6 +40,24 @@ namespace GardenManager.Models
 
         [JsonPropertyName("plot_type")]
         public PlotType? PlotType { get; set; }
+
+        [JsonPropertyName("soil_type_uuid")]
+        public string? SoilTypeUuid { get; set; }
+
+        [JsonPropertyName("plot_group_uuid")]
+        public string? PlotGroupUuid { get; set; }
+
+        [JsonPropertyName("locked")]
+        public bool? Locked { get; set; }
+
+        [JsonPropertyName("events")]
+        public List<Event>? Events { get; set; }
+
+        [JsonPropertyName("current_planted")]
+        public List<Planted>? CurrentPlanted { get; set; }
+
+        [JsonPropertyName("soil_compositions")]
+        public List<Dictionary<string, object>>? SoilCompositions { get; set; }
     }
 
     public class PlotType

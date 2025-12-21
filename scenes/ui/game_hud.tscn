@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3 uid="uid://bscpylfbg57q4"]
+[gd_scene load_steps=3 format=3 uid="uid://bscpylfbg57q4"]
 
 [ext_resource type="Script" path="res://Scripts/UI/GameHUD.cs" id="1"]
+[ext_resource type="Script" path="res://Scripts/UI/MessageHUD.cs" id="2"]
 
 [node name="GameHUD" type="Control"]
 layout_mode = 3
@@ -92,4 +93,15 @@ size_flags_horizontal = 4
 text = "Tool: Hands"
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="VSeparator4" type="VSeparator" parent="HBoxContainer"]
+layout_mode = 2
+
+[node name="MessageHUD" type="Label" parent="HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+text = ""
+horizontal_alignment = 2
+vertical_alignment = 1
+script = ExtResource("2")
 
