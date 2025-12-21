@@ -23,6 +23,7 @@ public partial class WorldManager : Node3D
 	private DirectionalLight3D _sunLight;
 	private Environment _currentEnvironment;
 	private TimeManager _timeManager;
+	private SkyManager _skyManager;
 	// Store each tree's base twig scale (100% value) so seasonal changes are relative to each tree's individual base
 	private Dictionary<Node3D, float> _fruitTreeBaseTwigScales = new Dictionary<Node3D, float>();
 
@@ -66,6 +67,9 @@ public partial class WorldManager : Node3D
 		
 		// Apply environment to viewport (will be updated by time-of-day system)
 		GetViewport().World3D.Environment = _currentEnvironment;
+		
+		// Initialize sky manager
+		_skyManager = new SkyManager(_currentEnvironment, _timeManager, this);
 		
 		GD.Print("WorldManager: Environment set up with sky and fog");
 		
@@ -684,16 +688,36 @@ public partial class WorldManager : Node3D
 			// Night: cool blue
 			_sunLight.LightColor = new Color(0.5f, 0.6f, 0.8f);
 		}
+		
+		// Update sky manager with sun position
+		// This sun position is calculated from:
+		// - Current time (minutes) from TimeManager
+		// - Sunrise/sunset times (which vary by month)
+		// - Month-based elevation adjustments (higher in summer, lower in winter)
+		// The advanced sky renderer will use this to render the sky with correct sun position
+		if (_skyManager != null)
+		{
+			_skyManager.UpdateSunPosition(sunElevation, sunAzimuth);
+		}
 	}
 	
 	private void UpdateSkyColors()
 	{
-		if (_timeManager == null || _currentEnvironment == null || _currentEnvironment.Sky == null)
+		if (_timeManager == null || _currentEnvironment == null)
 		{
 			return;
 		}
 		
-		var skyMaterial = _currentEnvironment.Sky.SkyMaterial as ProceduralSkyMaterial;
+		// Only update procedural sky colors if using procedural sky
+		// Advanced sky handles its own updates
+		if (_skyManager != null && _skyManager.IsUsingAdvancedSky())
+		{
+			// Using advanced sky, skip procedural color updates
+			return;
+		}
+		
+		// Get sky material for procedural sky
+		var skyMaterial = _currentEnvironment.Sky?.SkyMaterial as ProceduralSkyMaterial;
 		if (skyMaterial == null)
 		{
 			return;
@@ -807,11 +831,39 @@ public partial class WorldManager : Node3D
 			skyHorizon = nightSkyHorizon;
 		}
 		
-		// Update sky material
-		skyMaterial.SkyTopColor = skyTop;
-		skyMaterial.SkyHorizonColor = skyHorizon;
-		skyMaterial.GroundBottomColor = groundBottom;
-		skyMaterial.GroundHorizonColor = groundHorizon;
+		// Update sky material (only for procedural sky)
+		if (_skyManager != null)
+		{
+			_skyManager.UpdateProceduralSkyColors(skyTop, skyHorizon, groundBottom, groundHorizon);
+		}
+		else
+		{
+			// Fallback if sky manager not initialized
+			skyMaterial.SkyTopColor = skyTop;
+			skyMaterial.SkyHorizonColor = skyHorizon;
+			skyMaterial.GroundBottomColor = groundBottom;
+			skyMaterial.GroundHorizonColor = groundHorizon;
+		}
+	}
+	
+	public void SetAdvancedSky(bool enabled)
+	{
+		GD.Print($"WorldManager: Setting advanced sky to {enabled}");
+		if (_skyManager != null)
+		{
+			_skyManager.SwitchSkyType(enabled);
+			
+		// Update sun position immediately after switching
+		// This ensures the advanced sky gets the correct sun position based on current time and month
+		if (_timeManager != null)
+		{
+			UpdateSunPosition(); // This calculates elevation/azimuth from time-of-day and month, then updates sky manager
+		}
+		}
+		else
+		{
+			GD.PrintErr("WorldManager: SkyManager not initialized, cannot set advanced sky");
+		}
 	}
 
 	/// <summary>
